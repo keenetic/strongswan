@@ -139,10 +139,29 @@ static bool has_notify_errors(private_aggressive_mode_t *this, message_t *messag
 				DBG1(DBG_IKE, "received %N error notify",
 					 notify_type_names, type);
 				err = TRUE;
+				if (type == AUTHENTICATION_FAILED)
+				{
+					charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
+				} else if (type == INVALID_KE_PAYLOAD)
+				{
+					charon->bus->alert(charon->bus, ALERT_INVALID_KEY);
+				} else
+				{
+					charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
+				}
 			}
 			else
 			{
 				DBG1(DBG_IKE, "received %N notify", notify_type_names, type);
+			}
+			if (type == NO_PROPOSAL_CHOSEN) {
+				if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+				{
+					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+				} else
+				{
+					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
+				}
 			}
 		}
 	}
@@ -406,6 +425,7 @@ METHOD(task_t, process_r, status_t,
 			if (!this->proposal)
 			{
 				DBG1(DBG_IKE, "no proposal found");
+				charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 				return send_notify(this, NO_PROPOSAL_CHOSEN);
 			}
 			this->ike_sa->set_proposal(this->ike_sa, this->proposal);
@@ -437,11 +457,13 @@ METHOD(task_t, process_r, status_t,
 										KEY_EXCHANGE_METHOD, &group, NULL))
 			{
 				DBG1(DBG_IKE, "DH group selection failed");
+				charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
 			if (!this->ph1->create_dh(this->ph1, group))
 			{
 				DBG1(DBG_IKE, "negotiated DH group not supported");
+				charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
 			if (!this->ph1->get_nonce_ke(this->ph1, message))
@@ -454,6 +476,7 @@ METHOD(task_t, process_r, status_t,
 			{
 				DBG1(DBG_IKE, "IDii payload missing");
 				charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+				charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
 				return send_notify(this, INVALID_PAYLOAD_TYPE);
 			}
 
@@ -679,6 +702,7 @@ METHOD(task_t, process_i, status_t,
 		id_payload = (id_payload_t*)message->get_payload(message, PLV1_ID);
 		if (!id_payload)
 		{
+			charon->bus->alert(charon->bus, ALERT_WRONG_REMOTE_ID_IKEV1);
 			DBG1(DBG_IKE, "IDir payload missing");
 			charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
 			return send_delete(this);
@@ -687,6 +711,7 @@ METHOD(task_t, process_i, status_t,
 		cid = this->ph1->get_id(this->ph1, this->peer_cfg, FALSE);
 		if (cid && !id->matches(id, cid))
 		{
+			charon->bus->alert(charon->bus, ALERT_WRONG_REMOTE_ID_IKEV1);
 			DBG1(DBG_IKE, "IDir '%Y' does not match to '%Y'", id, cid);
 			id->destroy(id);
 			charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
@@ -706,6 +731,7 @@ METHOD(task_t, process_i, status_t,
 		}
 		if (!charon->bus->authorize(charon->bus, FALSE))
 		{
+			charon->bus->alert(charon->bus, ALERT_WRONG_REMOTE_ID_IKEV1);
 			DBG1(DBG_IKE, "Aggressive Mode authorization hook forbids IKE_SA, "
 				 "canceling");
 			return send_notify(this, AUTHENTICATION_FAILED);

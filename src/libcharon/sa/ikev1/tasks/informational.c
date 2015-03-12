@@ -137,6 +137,25 @@ METHOD(task_t, process_r, status_t,
 					{	/* only critical during main mode */
 						status = FAILED;
 					}
+					if (type == AUTHENTICATION_FAILED)
+					{
+						charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
+					} else if (type == NO_PROPOSAL_CHOSEN)
+					{
+						if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+						{
+							charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+						} else
+						{
+							charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
+						}
+					} else if (type == INVALID_KE_PAYLOAD)
+					{
+						charon->bus->alert(charon->bus, ALERT_INVALID_KEY);
+					} else
+					{
+						charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
+					}
 					switch (type)
 					{
 						case INVALID_ID_INFORMATION:
@@ -152,6 +171,18 @@ METHOD(task_t, process_r, status_t,
 				{
 					DBG1(DBG_IKE, "received %N notify",
 						 notify_type_names, type);
+				}
+				if (type == NO_PROPOSAL_CHOSEN) {
+					if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+					{
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+					} else
+					{
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
+					}
+				} else if (type == INVALID_KE_PAYLOAD)
+				{
+					charon->bus->alert(charon->bus, ALERT_INVALID_KEY);
 				}
 				continue;
 			case PLV1_DELETE:
