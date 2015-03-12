@@ -873,6 +873,8 @@ static status_t install_child_sa(private_child_create_t *this)
 		 ntohl(this->child_sa->get_spi(this->child_sa, FALSE)),
 		 my_ts, other_ts);
 
+	charon->bus->alert(charon->bus, ALERT_CHILDSA_ESTABLISHED);
+
 	my_ts->destroy(my_ts);
 	other_ts->destroy(other_ts);
 #endif
@@ -1978,6 +1980,8 @@ static void handle_child_sa_failure(private_child_create_t *this,
 		lib->scheduler->schedule_job_ms(lib->scheduler, (job_t*)
 			delete_ike_sa_job_create(this->ike_sa->get_id(this->ike_sa), TRUE),
 			100);
+
+		charon->bus->alert(charon->bus, ALERT_CHILD_SA_FAILURE);
 	}
 	else
 	{
@@ -2640,6 +2644,13 @@ METHOD(task_t, process_i, status_t,
 					raise_alerts(this, type);
 					handle_child_sa_failure(this, message);
 					/* an error in CHILD_SA creation is not critical */
+					if (type == NO_PROPOSAL_CHOSEN) {
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+					} else if ((type == INVALID_SELECTORS) || (type == TS_UNACCEPTABLE)) {
+						charon->bus->alert(charon->bus, ALERT_INVALID_TRAFFIC_SELECTORS_IKEV2);
+					} else {
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+					}
 					return SUCCESS;
 				}
 				case TEMPORARY_FAILURE:
@@ -2687,6 +2698,7 @@ METHOD(task_t, process_i, status_t,
 					this->child_sa->set_state(this->child_sa, CHILD_RETRYING);
 					this->public.task.migrate(&this->public.task, this->ike_sa);
 					enumerator->destroy(enumerator);
+					charon->bus->alert(charon->bus, ALERT_INVALID_DH_GROUP_IKEV2_IPSEC);
 					return NEED_MORE;
 				}
 				default:
