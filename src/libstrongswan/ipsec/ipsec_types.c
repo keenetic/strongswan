@@ -239,7 +239,7 @@ bool if_id_from_string(const char *value, uint32_t *if_id)
  */
 static uint32_t allocate_unique_if_id()
 {
-	static refcount_t unique_if_id = 0;
+	static refcount_t unique_if_id = 0xffff;
 	uint32_t if_id;
 
 	if_id = ref_get_nonzero(&unique_if_id);
@@ -255,7 +255,6 @@ static uint32_t allocate_unique_if_id()
  */
 void allocate_unique_if_ids(uint32_t *in, uint32_t *out)
 {
-
 	if (IF_ID_IS_UNIQUE(*in) || IF_ID_IS_UNIQUE(*out))
 	{
 		uint32_t if_id = 0;

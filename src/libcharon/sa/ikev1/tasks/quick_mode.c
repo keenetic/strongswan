@@ -392,6 +392,8 @@ static bool install(private_quick_mode_t *this)
 		 ntohl(this->child_sa->get_spi(this->child_sa, TRUE)),
 		 ntohl(this->child_sa->get_spi(this->child_sa, FALSE)), my_ts, other_ts);
 
+	charon->bus->alert(charon->bus, ALERT_CHILDSA_ESTABLISHED);
+
 	my_ts->destroy(my_ts);
 	other_ts->destroy(other_ts);
 
@@ -637,6 +639,9 @@ static bool get_ts(private_quick_mode_t *this, message_t *message)
 			DESTROY_IF(tsrsub);
 			tsi->destroy(tsi);
 			tsr->destroy(tsr);
+
+			charon->bus->alert(charon->bus, ALERT_INVALID_TRAFFIC_SELECTORS_IKEV1);
+
 			return FALSE;
 		}
 		tsi->destroy(tsi);
@@ -981,10 +986,29 @@ static bool has_notify_errors(private_quick_mode_t *this, message_t *message)
 				DBG1(DBG_IKE, "received %N error notify",
 					 notify_type_names, type);
 				err = TRUE;
+				if (type == AUTHENTICATION_FAILED)
+				{
+					charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
+				} else if (type == INVALID_KE_PAYLOAD)
+				{
+					charon->bus->alert(charon->bus, ALERT_INVALID_KEY);
+				} else
+				{
+					charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
+				}
 			}
 			else
 			{
 				DBG1(DBG_IKE, "received %N notify", notify_type_names, type);
+			}
+			if (type == NO_PROPOSAL_CHOSEN) {
+				if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+				{
+					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+				} else
+				{
+					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
+				}
 			}
 		}
 	}

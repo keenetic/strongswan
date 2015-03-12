@@ -16,7 +16,10 @@
 
 #include "error_notify_listener.h"
 
+#include <utils/process.h>
+#include <hydra.h>
 #include <daemon.h>
+#include <config/child_cfg.h>
 
 typedef struct private_error_notify_listener_t private_error_notify_listener_t;
 
@@ -36,6 +39,62 @@ struct private_error_notify_listener_t {
 	error_notify_socket_t *socket;
 };
 
+
+static void invoke_feedback(const char *feedback_script,
+	error_notify_msg_t *msg)
+{
+	FILE *shell;
+	process_t *process;
+	char *envp[128] = {};
+
+	char connection[64];
+	char type[32];
+	char action[16];
+	char * const argv[5] = {feedback_script, action, connection, type, NULL};
+	int out;
+
+	snprintf(connection, sizeof(connection), "%s", msg->name);
+	snprintf(type, sizeof(type), "%d", ntohl(msg->type));
+	snprintf(action, sizeof(action), "ikev1_conn");
+
+	process = process_start(argv, envp, NULL, &out, NULL, TRUE);
+	if (process)
+	{
+		shell = fdopen(out, "r");
+		if (shell)
+		{
+			while (TRUE)
+			{
+				char resp[128];
+
+				if (fgets(resp, sizeof(resp), shell) == NULL)
+				{
+					if (ferror(shell))
+					{
+						DBG1(DBG_CHD, "error reading from feedback script");
+					}
+					break;
+				}
+				else
+				{
+					char *e = resp + strlen(resp);
+					if (e > resp && e[-1] == '\n')
+					{
+						e[-1] = '\0';
+					}
+					DBG2(DBG_CHD, "feedback: %s", resp);
+				}
+			}
+			fclose(shell);
+		}
+		else
+		{
+			close(out);
+		}
+		process->wait(process, NULL);
+	}
+}
+
 METHOD(listener_t, alert, bool,
 	private_error_notify_listener_t *this, ike_sa_t *ike_sa,
 	alert_t alert, va_list args)
@@ -49,11 +108,6 @@ METHOD(listener_t, alert, bool,
 	certificate_t *cert;
 	time_t not_before, not_after;
 	int num;
-
-	if (!this->socket->has_listeners(this->socket))
-	{
-		return TRUE;
-	}
 
 	memset(&msg, 0, sizeof(msg));
 
@@ -246,6 +300,84 @@ METHOD(listener_t, alert, bool,
 			snprintf(msg.str, sizeof(msg.str), "certificate rejected because of "
 					 "policy violation: '%Y'", cert->get_issuer(cert));
 			break;
+		case ALERT_PROPOSAL_MISMATCH_IKEV1:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1);
+			snprintf(msg.str, sizeof(msg.str), "IKEv1 no proposal chosen");
+			break;
+		case ALERT_CHILDSA_ESTABLISHED:
+			msg.type = htonl(ERROR_NOTIFY_CHILDSA_ESTABLISHED);
+			snprintf(msg.str, sizeof(msg.str), "child SA established");
+			break;
+		case ALERT_WRONG_REMOTE_ID_IKEV1:
+			msg.type = htonl(ERROR_NOTIFY_WRONG_REMOTE_ID_IKEV1);
+			snprintf(msg.str, sizeof(msg.str), "remote ID mismatch");
+			break;
+		case ALERT_REMOTE_NOTIFY_AUTH_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_REMOTE_NOTIFY_AUTH_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "remote send auth failed");
+			break;
+		case ALERT_PROPOSAL_MISMATCH_IKEV1_IKE:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1_IKE);
+			snprintf(msg.str, sizeof(msg.str), "IKE no proposal chosen");
+			break;
+		case ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+			snprintf(msg.str, sizeof(msg.str), "IPsec no proposal chosen");
+			break;
+		case ALERT_NO_ROUTE:
+			msg.type = htonl(ERROR_NOTIFY_NO_ROUTE);
+			snprintf(msg.str, sizeof(msg.str), "no route to remote gateway");
+			break;
+		case ALERT_XAUTH_CLIENT_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_XAUTH_CLIENT_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "XAuth client auth was failed");
+			break;
+		case ALERT_XAUTH_SERVER_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_XAUTH_SERVER_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "XAuth server auth was failed");
+			break;
+		case ALERT_INVALID_TRAFFIC_SELECTORS_IKEV1:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_TRAFFIC_SELECTORS_IKEV1);
+			snprintf(msg.str, sizeof(msg.str), "Invalid traffic selectors");
+			break;
+
+		case ALERT_PROPOSAL_MISMATCH_IKEV2_IKE:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV2_IKE);
+			snprintf(msg.str, sizeof(msg.str), "IKEv2 proposal mismatch");
+			break;
+		case ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+			snprintf(msg.str, sizeof(msg.str), "IKEv2 Phase2 proposal mismatch");
+			break;
+		case ALERT_INVALID_TRAFFIC_SELECTORS_IKEV2:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_TRAFFIC_SELECTORS_IKEV2);
+			snprintf(msg.str, sizeof(msg.str), "Invalid traffic selectors");
+			break;
+		case ALERT_INVALID_DH_GROUP_IKEV2_IPSEC:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_DH_GROUP_IKEV2_IPSEC);
+			snprintf(msg.str, sizeof(msg.str), "Invalid DH group");
+			break;
+		case ALERT_CHILD_SA_FAILURE:
+			msg.type = htonl(ERROR_NOTIFY_CHILD_SA_FAILURE);
+			snprintf(msg.str, sizeof(msg.str), "CHILD_SA installation failure");
+			break;
+
+		case ALERT_INVALID_KEY:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_KEY);
+			snprintf(msg.str, sizeof(msg.str), "Invalid key");
+			break;
+
+		case ALERT_PEER_ADDR_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_PEER_ADDRESS_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "Error in address resolving");
+			break;
+
+		case ALERT_GENERAL_ERROR:
+			msg.type = htonl(ERROR_NOTIFY_GENERAL_ERROR);
+			snprintf(msg.str, sizeof(msg.str), "General connection error");
+			break;
+
+		default:
 		case ALERT_SHUTDOWN_SIGNAL:
 			return TRUE;
 	}
@@ -270,7 +402,11 @@ METHOD(listener_t, alert, bool,
 		}
 	}
 
-	this->socket->notify(this->socket, &msg);
+	if (this->socket->has_listeners(this->socket))
+	{
+		this->socket->notify(this->socket, &msg);
+	}
+	invoke_feedback("/tmp/ipsec/charon.feedback", &msg);
 
 	return TRUE;
 }
