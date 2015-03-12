@@ -5,6 +5,8 @@
 #include <linux/posix_types.h>
 #include <asm/types.h>
 
+#define __KERNEL_STRICT_NAMES
+
 #ifndef __KERNEL_STRICT_NAMES
 
 typedef __u32 __kernel_dev_t;
