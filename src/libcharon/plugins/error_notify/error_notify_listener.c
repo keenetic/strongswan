@@ -48,11 +48,13 @@ static void invoke_feedback(const char *feedback_script,
 
 	char connection[64];
 	char type[32];
-	char * const argv[4] = {feedback_script, connection, type, NULL};
+	char action[16];
+	char * const argv[5] = {feedback_script, action, connection, type, NULL};
 	int out;
 
 	snprintf(connection, sizeof(connection), "%s", msg->name);
-	snprintf(type, sizeof(type), "%lu", msg->type);
+	snprintf(type, sizeof(type), "%d", ntohl(msg->type));
+	snprintf(action, sizeof(action), "ikev1_conn");
 
 	process = process_start(argv, envp, NULL, &out, NULL, TRUE);
 	if (process)
