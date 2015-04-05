@@ -180,7 +180,7 @@ CALLBACK(load_cert, vici_message_t*,
 		return create_reply("parsing %N certificate failed",
 							certificate_type_names, type);
 	}
-	DBG1(DBG_CFG, "loaded certificate '%Y'", cert->get_subject(cert));
+	DBG2(DBG_CFG, "loaded certificate '%Y'", cert->get_subject(cert));
 
 	if (type == CERT_X509)
 	{
