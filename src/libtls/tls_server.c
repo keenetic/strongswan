@@ -1407,7 +1407,7 @@ static void write_certificate_authorities(bio_writer_t *writer)
 		if (x509->get_flags(x509) & X509_CA)
 		{
 			id = cert->get_subject(cert);
-			DBG1(DBG_TLS, "sending TLS cert request for '%Y'", id);
+			DBG2(DBG_TLS, "sending TLS cert request for '%Y'", id);
 			authorities->write_data16(authorities, id->get_encoding(id));
 		}
 	}
