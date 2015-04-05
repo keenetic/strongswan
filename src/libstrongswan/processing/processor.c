@@ -436,7 +436,7 @@ METHOD(processor_t, set_threads, void,
 		int i;
 
 		this->desired_threads = count;
-		DBG1(DBG_JOB, "spawning %d worker threads", count - this->total_threads);
+		DBG2(DBG_JOB, "spawning %d worker threads", count - this->total_threads);
 		for (i = this->total_threads; i < count; i++)
 		{
 			INIT(worker,
