@@ -99,7 +99,7 @@ int starter_stop_charon (void)
 		}
 		if (_charon_pid == 0)
 		{
-			DBG1(DBG_APP, "%s stopped after %d ms", daemon_name, 200*i);
+			DBG2(DBG_APP, "%s stopped after %d ms", daemon_name, 200*i);
 			return 0;
 		}
 		DBG1(DBG_APP, "starter_stop_charon(): can't stop %s !!!", daemon_name);
@@ -216,7 +216,7 @@ int starter_start_charon (starter_config_t *cfg, bool no_fork, bool attach_gdb)
 				usleep(20000);
 				if (stat(pid_file, &stb) == 0)
 				{
-					DBG1(DBG_APP, "%s (%d) started after %d ms", daemon_name,
+					DBG2(DBG_APP, "%s (%d) started after %d ms", daemon_name,
 						 _charon_pid, 20*(i+1));
 					return 0;
 				}

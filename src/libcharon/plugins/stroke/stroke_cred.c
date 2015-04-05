@@ -1166,7 +1166,7 @@ static void load_secrets(private_stroke_cred_t *this, mem_cred_t *secrets,
 	int line_nr = 0;
 	chunk_t *src, line;
 
-	DBG1(DBG_CFG, "loading secrets from '%s'", file);
+	DBG1(DBG_CFG, "loading secrets", file);
 	src = chunk_map(file, FALSE);
 	if (!src)
 	{
@@ -1349,27 +1349,27 @@ static void load_certs(private_stroke_cred_t *this)
 {
 	mem_cred_t *creds;
 
-	DBG1(DBG_CFG, "loading ca certificates from '%s'",
+	DBG2(DBG_CFG, "loading ca certificates from '%s'",
 		 CA_CERTIFICATE_DIR);
 	creds = mem_cred_create();
 	load_certdir(this, CA_CERTIFICATE_DIR, CERT_X509, X509_CA, creds);
 	this->ca->replace_certs(this->ca, creds);
 	creds->destroy(creds);
 
-	DBG1(DBG_CFG, "loading aa certificates from '%s'",
+	DBG2(DBG_CFG, "loading aa certificates from '%s'",
 		 AA_CERTIFICATE_DIR);
 	load_certdir(this, AA_CERTIFICATE_DIR, CERT_X509, X509_AA, this->aacerts);
 
-	DBG1(DBG_CFG, "loading ocsp signer certificates from '%s'",
+	DBG2(DBG_CFG, "loading ocsp signer certificates from '%s'",
 		 OCSP_CERTIFICATE_DIR);
 	load_certdir(this, OCSP_CERTIFICATE_DIR, CERT_X509, X509_OCSP_SIGNER,
 				 this->creds);
 
-	DBG1(DBG_CFG, "loading attribute certificates from '%s'",
+	DBG2(DBG_CFG, "loading attribute certificates from '%s'",
 		 ATTR_CERTIFICATE_DIR);
 	load_certdir(this, ATTR_CERTIFICATE_DIR, CERT_X509_AC, 0, this->creds);
 
-	DBG1(DBG_CFG, "loading crls from '%s'",
+	DBG2(DBG_CFG, "loading crls from '%s'",
 		 CRL_DIR);
 	load_certdir(this, CRL_DIR, CERT_X509_CRL, 0, this->creds);
 }
