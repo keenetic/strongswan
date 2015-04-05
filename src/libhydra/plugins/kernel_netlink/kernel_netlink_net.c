@@ -2651,7 +2651,7 @@ kernel_netlink_net_t *kernel_netlink_net_create()
 		if (manage_rule(this, RTM_NEWRULE, AF_INET6, this->routing_table,
 						this->routing_table_prio) != SUCCESS)
 		{
-			DBG1(DBG_KNL, "unable to create IPv6 routing table rule");
+			DBG2(DBG_KNL, "unable to create IPv6 routing table rule");
 		}
 	}
 

@@ -510,7 +510,7 @@ METHOD(netlink_socket_t, netlink_send_ack, status_t,
 						free(out);
 						return NOT_FOUND;
 					}
-					DBG1(DBG_KNL, "received netlink error: %s (%d)",
+					DBG2(DBG_KNL, "received netlink error: %s (%d)",
 						 strerror(-err->error), -err->error);
 					free(out);
 					return FAILED;

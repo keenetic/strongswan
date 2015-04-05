@@ -707,7 +707,7 @@ int main (int argc, char **argv)
 			confread_free(cfg);
 			unlink(starter_pid_file);
 			cleanup();
-			DBG1(DBG_APP, "ipsec starter stopped");
+			DBG2(DBG_APP, "ipsec starter stopped");
 			close_log();
 			exit(LSB_RC_SUCCESS);
 		}
