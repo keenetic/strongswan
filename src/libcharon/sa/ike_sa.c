@@ -624,7 +624,7 @@ METHOD(ike_sa_t, send_dpd, status_t,
 		if (!delay || diff >= delay)
 		{
 			/* too long ago, initiate dead peer detection */
-			DBG1(DBG_IKE, "sending DPD request");
+			DBG2(DBG_IKE, "sending DPD request");
 			this->task_manager->queue_dpd(this->task_manager);
 			task_queued = TRUE;
 			diff = 0;
