@@ -153,6 +153,10 @@ enum alert_t {
 	ALERT_CERT_EXCEEDED_PATH_LEN,
 	/** Certificate rejected; other policy violation, certificate_t */
 	ALERT_CERT_POLICY_VIOLATION,
+
+	/* IKEv1 notifies */
+	ALERT_PROPOSAL_MISMATCH_IKEV1,
+
 };
 
 /**
