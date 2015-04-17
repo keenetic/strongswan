@@ -223,6 +223,12 @@ METHOD(listener_t, alert, bool,
 			snprintf(msg.str, sizeof(msg.str), "no trusted issuer certificate "
 					 "found: '%Y'", cert->get_issuer(cert));
 			break;
+
+		case ALERT_PROPOSAL_MISMATCH_IKEV1:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1);
+			snprintf(msg.str, sizeof(msg.str), "IKEv1 no proposal chosen");
+			break;
+
 		default:
 			return TRUE;
 	}
