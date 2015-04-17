@@ -136,6 +136,10 @@ METHOD(task_t, process_r, status_t,
 					{	/* only critical during main mode */
 						status = FAILED;
 					}
+
+					if (type == NO_PROPOSAL_CHOSEN) {
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1);
+					}
 					switch (type)
 					{
 						case INVALID_ID_INFORMATION:
@@ -151,6 +155,9 @@ METHOD(task_t, process_r, status_t,
 				{
 					DBG1(DBG_IKE, "received %N notify",
 						 notify_type_names, type);
+				}
+				if (type == NO_PROPOSAL_CHOSEN) {
+					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1);
 				}
 				continue;
 			case PLV1_DELETE:
