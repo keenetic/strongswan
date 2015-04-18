@@ -95,7 +95,7 @@ static struct {
 	  "\x88\x2f\xe5\x6d\x6f\xd2\x0d\xbc\x22\x51\x61\x3b\x2e\xbe\x5b\xeb"},
 
 	/* XAuth, MD5("draft-ietf-ipsra-isakmp-xauth-06.txt") */
-	{ "XAuth", EXT_XAUTH, TRUE, 8,
+	{ "XAuth", EXT_XAUTH, FALSE, 8,
 	  "\x09\x00\x26\x89\xdf\xd6\xb7\x12"},
 
 	/* Dead peer detection, RFC 3706 */
