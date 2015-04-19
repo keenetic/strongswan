@@ -174,6 +174,7 @@ sys_logger_t *sys_logger_create(int facility)
 
 	set_level(this, DBG_ANY, LEVEL_SILENT);
 	setlogmask(LOG_UPTO(LOG_INFO));
+	openlog("ipsec", 0, facility);
 
 	return &this->public;
 }
