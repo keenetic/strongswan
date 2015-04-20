@@ -23,6 +23,7 @@
 #include <processing/jobs/callback_job.h>
 #include <processing/jobs/delete_ike_sa_job.h>
 #include <processing/jobs/rekey_ike_sa_job.h>
+#include <processing/jobs/rekey_child_sa_job.h>
 
 #include <time.h>
 
@@ -63,6 +64,11 @@ struct private_systime_fix_plugin_t {
 	 * Do we trigger reauth or delete when finding expired certificates?
 	 */
 	bool reauth;
+
+	/**
+	 * Previous value of system time
+	 */
+	time_t prev_time;
 };
 
 METHOD(plugin_t, get_name, char*,
@@ -117,6 +123,33 @@ static bool has_invalid_certs(ike_sa_t *ike_sa)
 	return !valid;
 }
 
+void initiate_rekey(void)
+{
+	ike_sa_t *ike_sa;
+	enumerator_t *enumerator, *enumerator_child;
+	child_cfg_t *child_cfg = NULL;
+	peer_cfg_t *peer_cfg = NULL;
+
+	enumerator = charon->controller->create_ike_sa_enumerator(
+													charon->controller, TRUE);
+	while (enumerator->enumerate(enumerator, &ike_sa))
+	{
+		if (ike_sa->get_state(ike_sa) == IKE_ESTABLISHED)
+		{
+			peer_cfg = ike_sa->get_peer_cfg(ike_sa);
+			enumerator_child = peer_cfg->create_child_cfg_enumerator(peer_cfg);
+			while (enumerator_child->enumerate(enumerator_child, &child_cfg))
+			{
+				charon->controller->initiate(charon->controller,
+					peer_cfg->get_ref(peer_cfg), 
+					child_cfg->get_ref(child_cfg), NULL, NULL, 0);
+			}
+			enumerator_child->destroy(enumerator_child);
+		}
+	}
+	enumerator->destroy(enumerator);
+}
+
 /**
  * Check system time, reevaluate certificates
  */
@@ -127,12 +160,28 @@ static job_requeue_t check_systime(private_systime_fix_plugin_t *this)
 	char *action;
 	job_t *job;
 
+	if (((time(NULL) - this->prev_time) > (this->interval * 4)) ||
+		((time(NULL) - this->prev_time) < (-this->interval * 3)))
+	{
+		DBG1(DBG_CFG, "system time jump detected from %ds to %ds, initiate SA rekeying",
+			this->prev_time, time(NULL));
+		initiate_rekey();
+		this->prev_time = time(NULL);
+		return JOB_REQUEUE_NONE;
+	}
+	this->prev_time = time(NULL);
+
+	lib->scheduler->schedule_job(lib->scheduler, (job_t*)
+				callback_job_create((callback_job_cb_t)check_systime, this,
+									NULL, NULL), this->interval);
+
+	// FIXME: right now we don't have any need in certificates check,
+	// but coexistence must be implemented when it should be
+	return JOB_REQUEUE_NONE;
+
 	if (time(NULL) < this->threshold)
 	{
 		DBG2(DBG_CFG, "systime not valid, rechecking in %ds", this->interval);
-		lib->scheduler->schedule_job(lib->scheduler, (job_t*)
-					callback_job_create((callback_job_cb_t)check_systime, this,
-										NULL, NULL), this->interval);
 		return JOB_REQUEUE_NONE;
 	}
 
@@ -183,29 +232,29 @@ static bool load_validator(private_systime_fix_plugin_t *this)
 			"%s.plugins.%s.threshold", NULL, lib->ns, get_name(this));
 	if (!str)
 	{
-		DBG1(DBG_CFG, "no threshold configured for %s, disabled",
+		DBG2(DBG_CFG, "no threshold configured for %s, disabled",
 			 get_name(this));
 		return FALSE;
 	}
 	if (strptime(str, fmt, &tm) == NULL)
 	{
-		DBG1(DBG_CFG, "threshold for %s invalid, disabled", get_name(this));
+		DBG2(DBG_CFG, "threshold for %s invalid, disabled", get_name(this));
 		return FALSE;
 	}
 	this->threshold = mktime(&tm);
 	if (this->threshold == -1)
 	{
-		DBG1(DBG_CFG, "converting threshold for %s failed, disabled",
+		DBG2(DBG_CFG, "converting threshold for %s failed, disabled",
 			 get_name(this));
 		return FALSE;
 	}
 	if (time(NULL) >= this->threshold)
 	{
-		DBG1(DBG_CFG, "system time looks good, disabling %s", get_name(this));
+		DBG2(DBG_CFG, "system time looks good, disabling %s", get_name(this));
 		return FALSE;
 	}
 
-	DBG1(DBG_CFG, "enabling %s, threshold: %s", get_name(this), asctime(&tm));
+	DBG2(DBG_CFG, "enabling %s, threshold: %s", get_name(this), asctime(&tm));
 	this->validator = systime_fix_validator_create(this->threshold);
 	return TRUE;
 }
@@ -227,6 +276,7 @@ static bool plugin_cb(private_systime_fix_plugin_t *this,
 		{
 			DBG1(DBG_CFG, "starting systime check, interval: %ds",
 				 this->interval);
+			this->prev_time = time(NULL);
 			lib->scheduler->schedule_job(lib->scheduler, (job_t*)
 					callback_job_create((callback_job_cb_t)check_systime,
 										this, NULL, NULL), this->interval);
