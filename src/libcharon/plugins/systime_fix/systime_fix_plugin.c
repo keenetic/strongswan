@@ -160,14 +160,11 @@ static job_requeue_t check_systime(private_systime_fix_plugin_t *this)
 	char *action;
 	job_t *job;
 
-	if (((time(NULL) - this->prev_time) > (this->interval * 4)) ||
-		((time(NULL) - this->prev_time) < (-this->interval * 3)))
+	if ((time(NULL) - this->prev_time) > (this->interval * 4))
 	{
 		DBG1(DBG_CFG, "system time jump detected from %ds to %ds, initiate SA rekeying",
 			this->prev_time, time(NULL));
 		initiate_rekey();
-		this->prev_time = time(NULL);
-		return JOB_REQUEUE_NONE;
 	}
 	this->prev_time = time(NULL);
 
