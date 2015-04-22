@@ -41,11 +41,11 @@ struct private_stroke_plugin_t {
 	stroke_socket_t *socket;
 };
 
-#define UPDATE_STATS_INTERVAL 5
+#define UPDATE_STATS_INTERVAL 3
 
 #define IPSEC_PATH "/tmp/ipsec/stats/"
 
-#define FILENAME_BUFFER 256
+#define FILENAME_BUFFER 128
 
 static void mktmpfile(char * out, unsigned int len, char * conn)
 {
@@ -258,10 +258,10 @@ void update_ike_sa(FILE *out, ike_sa_t *ike_sa)
 		char buf[BUF_LEN];
 
 		snprintf(buf, BUF_LEN, "%P", ike_proposal);
-		fprintf(out, "%s\n", buf + 4);
+		fprintf(out, "%s", buf + 4);
 	} else
 	{
-		fprintf(out, "NONE\n");
+		fprintf(out, "NONE");
 	}
 }
 
@@ -375,7 +375,7 @@ static void update_child_sa(FILE *out, child_sa_t *child_sa)
 							child_sa->create_ts_enumerator(child_sa, TRUE));
 	other_ts = linked_list_create_from_enumerator(
 							child_sa->create_ts_enumerator(child_sa, FALSE));
-	fprintf(out, "%#R\n%#R\n", my_ts, other_ts);
+	fprintf(out, "%#R\n%#R", my_ts, other_ts);
 	my_ts->destroy(my_ts);
 	other_ts->destroy(other_ts);
 }
@@ -415,7 +415,7 @@ static void update_sa(void)
 
 			while (children->enumerate(children, (void**)&child_sa))
 			{
-				fprintf(fd, "childsa\n");
+				fprintf(fd, "\nchildsa\n");
 				update_child_sa(fd, child_sa);
 			}
 			children->destroy(children);
