@@ -161,6 +161,7 @@ enum alert_t {
 
 	/* IKEv1 notifies */
 	ALERT_PROPOSAL_MISMATCH_IKEV1,
+	ALERT_CHILDSA_ESTABLISHED,
 
 };
 
