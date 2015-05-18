@@ -394,6 +394,8 @@ static bool install(private_quick_mode_t *this)
 		 ntohl(this->child_sa->get_spi(this->child_sa, TRUE)),
 		 ntohl(this->child_sa->get_spi(this->child_sa, FALSE)), my_ts, other_ts);
 
+	charon->bus->alert(charon->bus, ALERT_CHILDSA_ESTABLISHED);
+
 	my_ts->destroy(my_ts);
 	other_ts->destroy(other_ts);
 
