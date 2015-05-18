@@ -228,6 +228,10 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1);
 			snprintf(msg.str, sizeof(msg.str), "IKEv1 no proposal chosen");
 			break;
+		case ALERT_CHILDSA_ESTABLISHED:
+			msg.type = htonl(ERROR_NOTIFY_CHILDSA_ESTABLISHED);
+			snprintf(msg.str, sizeof(msg.str), "child SA established");
+			break;
 
 		default:
 			return TRUE;
