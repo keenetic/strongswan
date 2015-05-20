@@ -121,7 +121,7 @@ static void init_log(const char *program)
 	}
 	if (log_to_syslog)
 	{
-		openlog("ipsec" , LOG_CONS | LOG_NDELAY | LOG_PID, LOG_AUTHPRIV);
+		openlog("ipsec" , LOG_CONS | LOG_NDELAY, LOG_AUTHPRIV);
 	}
 }
 
