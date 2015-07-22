@@ -266,6 +266,7 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	process_t *process;
 	char port_buf[PORT_BUF_LEN];
 	char *envp[128] = {};
+	ipsec_mode_t sa_mode;
 
 	me = ike_sa->get_my_host(ike_sa);
 	other = ike_sa->get_other_host(ike_sa);
@@ -285,6 +286,10 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 			 up ? "up" : "down",
 			 is_host ? "-host" : "-client",
 			 is_ipv6 ? "-v6" : "");
+
+	push_env(envp, countof(envp), "NDM_ACTION=%s", up ? "up" : "down");
+	push_env(envp, countof(envp), "NDM_SIDE=%s", is_host ? "host" : "client");
+
 	push_env(envp, countof(envp), "PLUTO_CONNECTION=%s",
 			 config->get_name(config));
 	if (up)
@@ -308,8 +313,13 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 			 child_sa->get_reqid(child_sa));
 	push_env(envp, countof(envp), "PLUTO_PROTO=%s",
 			 child_sa->get_protocol(child_sa) == PROTO_ESP ? "esp" : "ah");
+
 	push_env(envp, countof(envp), "PLUTO_UNIQUEID=%u",
 			 ike_sa->get_unique_id(ike_sa));
+
+	push_env(envp, countof(envp), "NDM_SA_UNIQUEID=%u",
+			 child_sa->get_unique_id(child_sa));
+
 	push_env(envp, countof(envp), "PLUTO_ME=%H", me);
 	push_env(envp, countof(envp), "PLUTO_MY_ID=%Y", ike_sa->get_my_id(ike_sa));
 	if (!my_ts->to_subnet(my_ts, &host, &mask))
@@ -318,9 +328,27 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 					  "by next larger subnet", my_ts);
 	}
 	push_env(envp, countof(envp), "PLUTO_MY_CLIENT=%+H/%u", host, mask);
+
+	push_env(envp, countof(envp), "NDM_MY_SUBNET=%+H", host);
+	push_env(envp, countof(envp), "NDM_MY_MASK=%u", mask);
+
 	host->destroy(host);
 	push_env(envp, countof(envp), "PLUTO_MY_PORT=%s",
 			 get_port(my_ts, other_ts, port_buf, TRUE));
+
+	sa_mode = child_sa->get_mode(child_sa);
+	switch (sa_mode)
+	{
+		case MODE_TRANSPORT:
+			push_env(envp, countof(envp), "NDM_SA_MODE=transport");
+			break;
+		case MODE_TUNNEL:
+			push_env(envp, countof(envp), "NDM_SA_MODE=tunnel");
+			break;
+		default:
+			push_env(envp, countof(envp), "NDM_SA_MODE=undef");
+	};
+
 	push_env(envp, countof(envp), "PLUTO_MY_PROTOCOL=%u",
 			 my_ts->get_protocol(my_ts));
 	push_env(envp, countof(envp), "PLUTO_PEER=%H", other);
@@ -331,7 +359,12 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 		DBG1(DBG_CHD, "updown approximates remote TS %R "
 					  "by next larger subnet", other_ts);
 	}
+
 	push_env(envp, countof(envp), "PLUTO_PEER_CLIENT=%+H/%u", host, mask);
+
+	push_env(envp, countof(envp), "NDM_PEER_SUBNET=%+H", host);
+	push_env(envp, countof(envp), "NDM_PEER_MASK=%u", mask);
+
 	host->destroy(host);
 	push_env(envp, countof(envp), "PLUTO_PEER_PORT=%s",
 			 get_port(my_ts, other_ts, port_buf, FALSE));
