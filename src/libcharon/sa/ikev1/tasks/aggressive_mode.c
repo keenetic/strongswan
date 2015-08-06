@@ -678,6 +678,7 @@ METHOD(task_t, process_i, status_t,
 		id_payload = (id_payload_t*)message->get_payload(message, PLV1_ID);
 		if (!id_payload)
 		{
+			charon->bus->alert(charon->bus, ALERT_WRONG_REMOTE_ID_IKEV1);
 			DBG1(DBG_IKE, "IDir payload missing");
 			return send_delete(this);
 		}
@@ -685,6 +686,7 @@ METHOD(task_t, process_i, status_t,
 		cid = this->ph1->get_id(this->ph1, this->peer_cfg, FALSE);
 		if (cid && !id->matches(id, cid))
 		{
+			charon->bus->alert(charon->bus, ALERT_WRONG_REMOTE_ID_IKEV1);
 			DBG1(DBG_IKE, "IDir '%Y' does not match to '%Y'", id, cid);
 			id->destroy(id);
 			return send_notify(this, INVALID_ID_INFORMATION);
@@ -702,6 +704,7 @@ METHOD(task_t, process_i, status_t,
 		}
 		if (!charon->bus->authorize(charon->bus, FALSE))
 		{
+			charon->bus->alert(charon->bus, ALERT_WRONG_REMOTE_ID_IKEV1);
 			DBG1(DBG_IKE, "Aggressive Mode authorization hook forbids IKE_SA, "
 				 "cancelling");
 			return send_notify(this, AUTHENTICATION_FAILED);
