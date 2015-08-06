@@ -232,6 +232,10 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_CHILDSA_ESTABLISHED);
 			snprintf(msg.str, sizeof(msg.str), "child SA established");
 			break;
+		case ALERT_WRONG_REMOTE_ID_IKEV1:
+			msg.type = htonl(ERROR_NOTIFY_WRONG_REMOTE_ID_IKEV1);
+			snprintf(msg.str, sizeof(msg.str), "remote ID mismatch");
+			break;
 
 		default:
 			return TRUE;
