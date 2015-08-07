@@ -236,6 +236,11 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_WRONG_REMOTE_ID_IKEV1);
 			snprintf(msg.str, sizeof(msg.str), "remote ID mismatch");
 			break;
+		case ALERT_REMOTE_NOTIFY_AUTH_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_REMOTE_NOTIFY_AUTH_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "remote send auth failed");
+			break;
+
 
 		default:
 			return TRUE;
