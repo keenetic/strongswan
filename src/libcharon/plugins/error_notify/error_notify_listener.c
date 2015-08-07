@@ -224,10 +224,6 @@ METHOD(listener_t, alert, bool,
 					 "found: '%Y'", cert->get_issuer(cert));
 			break;
 
-		case ALERT_PROPOSAL_MISMATCH_IKEV1:
-			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1);
-			snprintf(msg.str, sizeof(msg.str), "IKEv1 no proposal chosen");
-			break;
 		case ALERT_CHILDSA_ESTABLISHED:
 			msg.type = htonl(ERROR_NOTIFY_CHILDSA_ESTABLISHED);
 			snprintf(msg.str, sizeof(msg.str), "child SA established");
@@ -240,7 +236,14 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_REMOTE_NOTIFY_AUTH_FAILED);
 			snprintf(msg.str, sizeof(msg.str), "remote send auth failed");
 			break;
-
+		case ALERT_PROPOSAL_MISMATCH_IKEV1_IKE:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1_IKE);
+			snprintf(msg.str, sizeof(msg.str), "IKE no proposal chosen");
+			break;
+		case ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+			snprintf(msg.str, sizeof(msg.str), "IPsec no proposal chosen");
+			break;
 
 		default:
 			return TRUE;
