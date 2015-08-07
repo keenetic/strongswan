@@ -155,7 +155,13 @@ static bool has_notify_errors(private_aggressive_mode_t *this, message_t *messag
 				DBG1(DBG_IKE, "received %N notify", notify_type_names, type);
 			}
 			if (type == NO_PROPOSAL_CHOSEN) {
-				charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1);
+				if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+				{
+					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+				} else
+				{
+					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
+				}
 			}
 		}
 	}
