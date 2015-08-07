@@ -531,7 +531,7 @@ static int print_alg(private_proposal_t *this, printf_hook_data_t *data,
 		}
 		if (size)
 		{
-			written += print_in_hook(data, "_%u", size);
+			written += print_in_hook(data, "=%u", size);
 		}
 	}
 	enumerator->destroy(enumerator);
@@ -547,7 +547,7 @@ int proposal_printf_hook(printf_hook_data_t *data, printf_hook_spec_t *spec,
 	private_proposal_t *this = *((private_proposal_t**)(args[0]));
 	linked_list_t *list = *((linked_list_t**)(args[0]));
 	enumerator_t *enumerator;
-	size_t written = 0;
+	size_t written = 0, old_written = 0;
 	bool first = TRUE;
 
 	if (this == NULL)
@@ -575,16 +575,83 @@ int proposal_printf_hook(printf_hook_data_t *data, printf_hook_spec_t *spec,
 	}
 
 	written = print_in_hook(data, "%N:", protocol_id_names, this->protocol);
+	old_written = written;
+
 	written += print_alg(this, data, ENCRYPTION_ALGORITHM,
 						 encryption_algorithm_names, &first);
+	if (written == old_written)
+	{
+		if (first)
+		{
+			written += print_in_hook(data, "#");
+			first = FALSE;
+		} else
+		{
+			written += print_in_hook(data, "/#");
+		}
+	}
+	old_written = written;
+
 	written += print_alg(this, data, INTEGRITY_ALGORITHM,
 						 integrity_algorithm_names, &first);
+	if (written == old_written)
+	{
+		if (first)
+		{
+			written += print_in_hook(data, "#");
+			first = FALSE;
+		} else
+		{
+			written += print_in_hook(data, "/#");
+		}
+	}
+	old_written = written;
+
 	written += print_alg(this, data, PSEUDO_RANDOM_FUNCTION,
 						 pseudo_random_function_names, &first);
+	if (written == old_written)
+	{
+		if (first)
+		{
+			written += print_in_hook(data, "#");
+			first = FALSE;
+		} else
+		{
+			written += print_in_hook(data, "/#");
+		}
+	}
+	old_written = written;
+
 	written += print_alg(this, data, DIFFIE_HELLMAN_GROUP,
 						 diffie_hellman_group_names, &first);
+	if (written == old_written)
+	{
+		if (first)
+		{
+			written += print_in_hook(data, "#");
+			first = FALSE;
+		} else
+		{
+			written += print_in_hook(data, "/#");
+		}
+	}
+	old_written = written;
+
 	written += print_alg(this, data, EXTENDED_SEQUENCE_NUMBERS,
 						 extended_sequence_numbers_names, &first);
+	if (written == old_written)
+	{
+		if (first)
+		{
+			written += print_in_hook(data, "#");
+			first = FALSE;
+		} else
+		{
+			written += print_in_hook(data, "/#");
+		}
+	}
+	old_written = written;
+
 	return written;
 }
 
