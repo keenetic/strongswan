@@ -296,6 +296,7 @@ static void update_child_sa(FILE *out, child_sa_t *child_sa)
 			u_int16_t encr_alg = ENCR_UNDEFINED, int_alg = AUTH_UNDEFINED;
 			u_int16_t encr_size = 0, int_size = 0;
 			u_int16_t esn = NO_EXT_SEQ_NUMBERS;
+			u_int16_t dh = MODP_NONE;
 			bool first = TRUE;
 
 			proposal->get_algorithm(proposal, ENCRYPTION_ALGORITHM,
@@ -304,6 +305,8 @@ static void update_child_sa(FILE *out, child_sa_t *child_sa)
 									&int_alg, &int_size);
 			proposal->get_algorithm(proposal, EXTENDED_SEQUENCE_NUMBERS,
 									&esn, NULL);
+			proposal->get_algorithm(proposal, DIFFIE_HELLMAN_GROUP,
+									&dh, NULL);
 
 			if (encr_alg != ENCR_UNDEFINED)
 			{
@@ -311,7 +314,7 @@ static void update_child_sa(FILE *out, child_sa_t *child_sa)
 				first = FALSE;
 				if (encr_size)
 				{
-					fprintf(out, "_%u", encr_size);
+					fprintf(out, "=%u", encr_size);
 				}
 			}
 			if (int_alg != AUTH_UNDEFINED)
@@ -319,6 +322,7 @@ static void update_child_sa(FILE *out, child_sa_t *child_sa)
 				if (!first)
 				{
 					fprintf(out, "/");
+					first = FALSE;
 				}
 				fprintf(out, "%N", integrity_algorithm_names, int_alg);
 				if (int_size)
@@ -329,6 +333,16 @@ static void update_child_sa(FILE *out, child_sa_t *child_sa)
 			if (esn == EXT_SEQ_NUMBERS)
 			{
 				fprintf(out, "/ESN");
+			} else
+			{
+				fprintf(out, "/NOESN");
+			}
+			if (dh != MODP_NONE)
+			{
+				fprintf(out, "/%N", diffie_hellman_group_names, dh);
+			} else
+			{
+				fprintf(out, "/MODP_NONE");
 			}
 			fprintf(out, "\n");
 		} else
