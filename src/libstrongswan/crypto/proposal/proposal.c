@@ -878,7 +878,7 @@ static int print_alg(private_proposal_t *this, printf_hook_data_t *data,
 		}
 		if (entry->key_size)
 		{
-			written += print_in_hook(data, "_%u", entry->key_size);
+			written += print_in_hook(data, "=%u", entry->key_size);
 		}
 	}
 	enumerator->destroy(enumerator);
@@ -895,7 +895,7 @@ int proposal_printf_hook(printf_hook_data_t *data, printf_hook_spec_t *spec,
 	linked_list_t *list = *((linked_list_t**)(args[0]));
 	enumerator_t *enumerator;
 	transform_type_t *type;
-	size_t written = 0;
+	size_t written = 0, old_written = 0;
 	bool first = TRUE;
 
 	if (this == NULL)
@@ -923,12 +923,30 @@ int proposal_printf_hook(printf_hook_data_t *data, printf_hook_spec_t *spec,
 	}
 
 	written = print_in_hook(data, "%N:", protocol_id_names, this->protocol);
+	old_written = written;
+
 	enumerator = array_create_enumerator(this->types);
 	while (enumerator->enumerate(enumerator, &type))
 	{
 		written += print_alg(this, data, *type, &first);
+
+		if (written == old_written)
+		{
+			if (first)
+			{
+				written += print_in_hook(data, "#");
+				first = FALSE;
+			}
+			else
+			{
+				written += print_in_hook(data, "/#");
+			}
+		}
+
+		old_written = written;
 	}
 	enumerator->destroy(enumerator);
+
 	return written;
 }
 
