@@ -145,6 +145,10 @@ static bool has_notify_errors(private_aggressive_mode_t *this, message_t *messag
 				DBG1(DBG_IKE, "received %N error notify",
 					 notify_type_names, type);
 				err = TRUE;
+				if (type == AUTHENTICATION_FAILED)
+				{
+					charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
+				}
 			}
 			else
 			{

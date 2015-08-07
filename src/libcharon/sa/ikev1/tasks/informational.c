@@ -136,7 +136,10 @@ METHOD(task_t, process_r, status_t,
 					{	/* only critical during main mode */
 						status = FAILED;
 					}
-
+					if (type == AUTHENTICATION_FAILED)
+					{
+						charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
+					}
 					if (type == NO_PROPOSAL_CHOSEN) {
 						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1);
 					}
