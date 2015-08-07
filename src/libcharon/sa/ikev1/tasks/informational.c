@@ -141,7 +141,13 @@ METHOD(task_t, process_r, status_t,
 						charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
 					}
 					if (type == NO_PROPOSAL_CHOSEN) {
-						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1);
+						if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+						{
+							charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+						} else
+						{
+							charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
+						}
 					}
 					switch (type)
 					{
@@ -160,7 +166,13 @@ METHOD(task_t, process_r, status_t,
 						 notify_type_names, type);
 				}
 				if (type == NO_PROPOSAL_CHOSEN) {
-					charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1);
+					if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
+					{
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
+					} else
+					{
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
+					}
 				}
 				continue;
 			case PLV1_DELETE:
