@@ -244,6 +244,10 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1_IPSEC);
 			snprintf(msg.str, sizeof(msg.str), "IPsec no proposal chosen");
 			break;
+		case ALERT_NO_ROUTE:
+			msg.type = htonl(ERROR_NOTIFY_NO_ROUTE);
+			snprintf(msg.str, sizeof(msg.str), "no route to remote gateway");
+			break;
 
 		default:
 			return TRUE;
