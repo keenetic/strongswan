@@ -2163,6 +2163,9 @@ METHOD(ike_sa_t, roam, status_t,
 		DBG1(DBG_IKE, "no route found to reach %H, MOBIKE update deferred",
 			 this->other_host);
 		set_condition(this, COND_STALE, TRUE);
+
+		charon->bus->alert(charon->bus, ALERT_NO_ROUTE);
+
 		return SUCCESS;
 	}
 	set_condition(this, COND_STALE, FALSE);
