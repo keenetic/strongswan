@@ -441,6 +441,7 @@ METHOD(task_t, process_r, status_t,
 		}
 		else
 		{
+			charon->bus->alert(charon->bus, ALERT_XAUTH_CLIENT_FAILED);
 			DBG1(DBG_IKE, "XAuth authentication of '%Y' (myself) failed",
 				 this->xauth->get_identity(this->xauth));
 		}
@@ -487,6 +488,7 @@ METHOD(task_t, process_i, status_t,
 			}
 			break;
 		case FAILED:
+			charon->bus->alert(charon->bus, ALERT_XAUTH_SERVER_FAILED);
 			DBG1(DBG_IKE, "XAuth authentication of '%Y' failed",
 				 this->xauth->get_identity(this->xauth));
 			break;
