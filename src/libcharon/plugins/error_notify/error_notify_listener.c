@@ -248,6 +248,14 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_NO_ROUTE);
 			snprintf(msg.str, sizeof(msg.str), "no route to remote gateway");
 			break;
+		case ALERT_XAUTH_CLIENT_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_XAUTH_CLIENT_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "XAuth client auth was failed");
+			break;
+		case ALERT_XAUTH_SERVER_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_XAUTH_SERVER_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "XAuth server auth was failed");
+			break;
 
 		default:
 			return TRUE;
