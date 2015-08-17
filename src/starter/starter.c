@@ -423,6 +423,7 @@ int main (int argc, char **argv)
 	bool attach_gdb = FALSE;
 	bool load_warning = FALSE;
 	bool conftest = FALSE;
+	bool was_initiated = FALSE;
 
 	library_init(NULL, "starter");
 	atexit(library_deinit);
@@ -903,20 +904,26 @@ int main (int argc, char **argv)
 					}
 					conn->state = STATE_ADDED;
 
-					if (conn->startup == STARTUP_START)
+					/*  After initial load it will be handled by NDM */
+					if( !was_initiated )
 					{
-						if (starter_charon_pid())
+						if (conn->startup == STARTUP_START)
 						{
-							starter_stroke_initiate_conn(conn);
+							if (starter_charon_pid())
+							{
+								starter_stroke_initiate_conn(conn);
+							}
 						}
-					}
-					else if (conn->startup == STARTUP_ROUTE)
-					{
-						if (starter_charon_pid())
+						else if (conn->startup == STARTUP_ROUTE)
 						{
-							starter_stroke_route_conn(conn);
+							if (starter_charon_pid())
+							{
+								starter_stroke_route_conn(conn);
+							}
 						}
+						was_initiated = TRUE;
 					}
+
 				}
 			}
 		}
