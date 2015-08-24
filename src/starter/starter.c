@@ -921,11 +921,11 @@ int main (int argc, char **argv)
 								starter_stroke_route_conn(conn);
 							}
 						}
-						was_initiated = TRUE;
+						
 					}
-
 				}
 			}
+			was_initiated = TRUE;
 		}
 
 		/*
