@@ -870,6 +870,8 @@ int main (int argc, char **argv)
 					conn->state = STATE_TO_ADD;
 				}
 			}
+
+			was_initiated = FALSE;
 		}
 
 		/*

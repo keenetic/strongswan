@@ -922,6 +922,7 @@ METHOD(task_t, process_i, status_t,
 	payload_t *payload;
 	auth_cfg_t *cfg;
 	bool mutual_eap = FALSE;
+	bool feedback_done = FALSE;
 
 	if (message->get_exchange_type(message) == IKE_SA_INIT)
 	{
@@ -950,6 +951,16 @@ METHOD(task_t, process_i, status_t,
 				case FAILED_CP_REQUIRED:
 				case TS_UNACCEPTABLE:
 				case INVALID_SELECTORS:
+					DBG1(DBG_IKE, "received %N notify",
+						 notify_type_names, type);
+					if (type == NO_PROPOSAL_CHOSEN) {
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+					} else if ((type == INVALID_SELECTORS) || (type == TS_UNACCEPTABLE)) {
+						charon->bus->alert(charon->bus, ALERT_INVALID_TRAFFIC_SELECTORS_IKEV2);
+					} else {
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+					}
+					feedback_done = TRUE;
 					/* these are errors, but are not critical as only the
 					 * CHILD_SA won't get build, but IKE_SA establishes anyway */
 					break;
@@ -972,6 +983,7 @@ METHOD(task_t, process_i, status_t,
 							 notify_type_names, type);
 						enumerator->destroy(enumerator);
 						charon->bus->alert(charon->bus, ALERT_LOCAL_AUTH_FAILED);
+						feedback_done = TRUE;
 						return FAILED;
 					}
 					DBG2(DBG_IKE, "received %N notify",
@@ -1120,7 +1132,9 @@ METHOD(task_t, process_i, status_t,
 	return NEED_MORE;
 
 peer_auth_failed:
-	charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+	if (!feedback_done) {
+		charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+	}
 	send_auth_failed_informational(this, message);
 	return FAILED;
 }
