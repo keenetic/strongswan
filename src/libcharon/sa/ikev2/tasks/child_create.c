@@ -1438,6 +1438,13 @@ METHOD(task_t, process_i, status_t,
 					raise_alerts(this, type);
 					handle_child_sa_failure(this, message);
 					/* an error in CHILD_SA creation is not critical */
+					if (type == NO_PROPOSAL_CHOSEN) {
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+					} else if ((type == INVALID_SELECTORS) || (type == TS_UNACCEPTABLE)) {
+						charon->bus->alert(charon->bus, ALERT_INVALID_TRAFFIC_SELECTORS_IKEV2);
+					} else {
+						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+					}
 					return SUCCESS;
 				}
 				case INVALID_KE_PAYLOAD:
@@ -1459,6 +1466,7 @@ METHOD(task_t, process_i, status_t,
 					this->child_sa->set_state(this->child_sa, CHILD_RETRYING);
 					this->public.task.migrate(&this->public.task, this->ike_sa);
 					enumerator->destroy(enumerator);
+					charon->bus->alert(charon->bus, ALERT_INVALID_DH_GROUP_IKEV2_IPSEC);
 					return NEED_MORE;
 				}
 				default:
