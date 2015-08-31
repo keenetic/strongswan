@@ -257,6 +257,23 @@ METHOD(listener_t, alert, bool,
 			snprintf(msg.str, sizeof(msg.str), "XAuth server auth was failed");
 			break;
 
+		case ALERT_PROPOSAL_MISMATCH_IKEV2_IKE:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV2_IKE);
+			snprintf(msg.str, sizeof(msg.str), "IKEv2 proposal mismatch");
+			break;
+		case ALERT_PROPOSAL_MISMATCH_IKEV2_IPSEC:
+			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV2_IPSEC);
+			snprintf(msg.str, sizeof(msg.str), "IKEv2 Phase2 proposal mismatch");
+			break;
+		case ALERT_INVALID_TRAFFIC_SELECTORS_IKEV2:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_TRAFFIC_SELECTORS_IKEV2);
+			snprintf(msg.str, sizeof(msg.str), "Invalid traffic selectors");
+			break;
+		case ALERT_INVALID_DH_GROUP_IKEV2_IPSEC:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_DH_GROUP_IKEV2_IPSEC);
+			snprintf(msg.str, sizeof(msg.str), "Invalid DH group");
+			break;
+
 		default:
 			return TRUE;
 	}
