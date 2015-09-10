@@ -142,7 +142,7 @@ void initiate_rekey(void)
 			{
 				charon->controller->initiate(charon->controller,
 					peer_cfg->get_ref(peer_cfg), 
-					child_cfg->get_ref(child_cfg), NULL, NULL, 0);
+					child_cfg->get_ref(child_cfg), NULL, NULL, 0, FALSE);
 			}
 			enumerator_child->destroy(enumerator_child);
 		}
