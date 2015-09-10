@@ -354,7 +354,7 @@ struct rtnexthop {
 
 /* RTA_VIA */
 struct rtvia {
-	__kernel_sa_family_t	rtvia_family;
+	sa_family_t	rtvia_family;
 	__u8			rtvia_addr[0];
 };
 
