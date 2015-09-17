@@ -139,8 +139,8 @@ METHOD(task_t, process_r, status_t,
 					if (type == AUTHENTICATION_FAILED)
 					{
 						charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
-					}
-					if (type == NO_PROPOSAL_CHOSEN) {
+					} else if (type == NO_PROPOSAL_CHOSEN)
+					{
 						if (this->ike_sa->get_state(this->ike_sa) == IKE_ESTABLISHED)
 						{
 							charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IPSEC);
@@ -148,6 +148,12 @@ METHOD(task_t, process_r, status_t,
 						{
 							charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 						}
+					} else if (type == INVALID_KE_PAYLOAD)
+					{
+						charon->bus->alert(charon->bus, ALERT_INVALID_KEY);
+					} else
+					{
+						charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
 					}
 					switch (type)
 					{
@@ -173,6 +179,9 @@ METHOD(task_t, process_r, status_t,
 					{
 						charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 					}
+				} else if (type == INVALID_KE_PAYLOAD)
+				{
+					charon->bus->alert(charon->bus, ALERT_INVALID_KEY);
 				}
 				continue;
 			case PLV1_DELETE:
