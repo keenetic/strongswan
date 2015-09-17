@@ -964,6 +964,12 @@ static bool has_notify_errors(private_quick_mode_t *this, message_t *message)
 				if (type == AUTHENTICATION_FAILED)
 				{
 					charon->bus->alert(charon->bus, ALERT_REMOTE_NOTIFY_AUTH_FAILED);
+				} else if (type == INVALID_KE_PAYLOAD)
+				{
+					charon->bus->alert(charon->bus, ALERT_INVALID_KEY);
+				} else
+				{
+					charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
 				}
 			}
 			else
