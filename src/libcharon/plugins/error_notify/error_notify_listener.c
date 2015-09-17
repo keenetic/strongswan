@@ -354,6 +354,16 @@ METHOD(listener_t, alert, bool,
 			snprintf(msg.str, sizeof(msg.str), "Invalid DH group");
 			break;
 
+		case ALERT_INVALID_KEY:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_KEY);
+			snprintf(msg.str, sizeof(msg.str), "Invalid key");
+			break;
+
+		case ALERT_GENERAL_ERROR:
+			msg.type = htonl(ERROR_NOTIFY_GENERAL_ERROR);
+			snprintf(msg.str, sizeof(msg.str), "General connection error");
+			break;
+
 		default:
 		case ALERT_SHUTDOWN_SIGNAL:
 			return TRUE;
