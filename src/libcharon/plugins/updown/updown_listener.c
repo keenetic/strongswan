@@ -377,7 +377,7 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 		push_env(envp, countof(envp), "PLUTO_HOST_ACCESS=1");
 	}
 
-	process = process_start_shell(envp, NULL, &out, NULL, "2>&1 %s",
+	process = process_start_shell(envp, NULL, &out, NULL, "%s",
 								  config->get_updown(config));
 	if (process)
 	{
