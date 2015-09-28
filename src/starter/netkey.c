@@ -42,16 +42,6 @@ bool starter_netkey_init(void)
 		}
 	}
 
-	/* make sure that all required IPsec modules are loaded */
-	if (stat(PROC_MODULES, &stb) == 0)
-	{
-		ignore_result(system("modprobe -qv ah4"));
-		ignore_result(system("modprobe -qv esp4"));
-		ignore_result(system("modprobe -qv ipcomp"));
-		ignore_result(system("modprobe -qv xfrm4_tunnel"));
-		ignore_result(system("modprobe -qv xfrm_user"));
-	}
-
 	DBG2(DBG_APP, "found netkey IPsec stack");
 	return TRUE;
 }
