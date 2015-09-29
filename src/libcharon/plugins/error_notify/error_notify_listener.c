@@ -279,6 +279,11 @@ METHOD(listener_t, alert, bool,
 			snprintf(msg.str, sizeof(msg.str), "Invalid key");
 			break;
 
+		case ALERT_PEER_ADDR_FAILED:
+			msg.type = htonl(ERROR_NOTIFY_PEER_ADDRESS_FAILED);
+			snprintf(msg.str, sizeof(msg.str), "Error in address resolving");
+			break;
+
 		case ALERT_GENERAL_ERROR:
 			msg.type = htonl(ERROR_NOTIFY_GENERAL_ERROR);
 			snprintf(msg.str, sizeof(msg.str), "General connection error");
