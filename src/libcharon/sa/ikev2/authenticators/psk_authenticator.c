@@ -18,6 +18,7 @@
 #include "psk_authenticator.h"
 
 #include <daemon.h>
+#include <utils/utils/memory.h>
 #include <encoding/payloads/auth_payload.h>
 #include <sa/ikev2/keymat_v2.h>
 
@@ -80,13 +81,14 @@ METHOD(authenticator_t, build, status_t,
 	ike_sa_name = this->ike_sa->get_name(this->ike_sa);
 	key = lib->credmgr->get_shared_crypto_map(lib->credmgr, SHARED_IKE,
 		ike_sa_name);
+	my_id = this->ike_sa->get_my_id(this->ike_sa);
+
 	if (key != NULL)
 	{
 		DBG1(DBG_IKE, "found linked key for crypto map '%s'", ike_sa_name);
 	} else
 	{
 		DBG1(DBG_IKE, "linked key for crypto map '%s' is not found, still searching", ike_sa_name);
-		my_id = this->ike_sa->get_my_id(this->ike_sa);
 		other_id = this->ike_sa->get_other_id(this->ike_sa);
 		DBG1(DBG_IKE, "authentication of '%Y' (myself) with %N",
 			 my_id, auth_method_names, AUTH_PSK);
@@ -144,6 +146,10 @@ METHOD(authenticator_t, process, status_t,
 	bool authenticated = FALSE;
 	int keys_found = 0;
 	keymat_v2_t *keymat;
+	identification_t *local_ndm_id = NULL;
+	identification_t *remote_ndm_id = identification_create_from_string(NULL);
+	char local_id[1024];
+	id_match_t ndm_match_local;
 
 	auth_payload = (auth_payload_t*)message->get_payload(message, PLV2_AUTH);
 	if (!auth_payload)
@@ -166,27 +172,70 @@ METHOD(authenticator_t, process, status_t,
 	keymat = (keymat_v2_t*)this->ike_sa->get_keymat(this->ike_sa);
 	my_id = this->ike_sa->get_my_id(this->ike_sa);
 	other_id = this->ike_sa->get_other_id(this->ike_sa);
-	enumerator = lib->credmgr->create_shared_enumerator(lib->credmgr,
-												SHARED_IKE, my_id, other_id);
-	while (!authenticated && enumerator->enumerate(enumerator, &key, NULL, NULL))
-	{
-		keys_found++;
 
-		if (!keymat->get_psk_sig(keymat, TRUE, this->ike_sa_init, this->nonce,
-								 key->get_key(key), this->ppk, other_id,
-								 this->reserved, &auth_data))
+	/* Firstly try to search for linked crypto map keys */
+
+	memset(local_id, 0, sizeof(local_id));
+	snprintf(local_id, sizeof(local_id), "cmap:%s", this->ike_sa->get_name(this->ike_sa));
+	local_ndm_id = identification_create_from_string(local_id);
+
+	enumerator = lib->credmgr->create_shared_enumerator(lib->credmgr,
+												SHARED_IKE, local_ndm_id, remote_ndm_id);
+	while (!authenticated && enumerator->enumerate(enumerator, &key, &ndm_match_local, NULL))
+	{
+		if (ndm_match_local == ID_MATCH_PERFECT)
 		{
-			continue;
+			keys_found++;
+
+			if (!keymat->get_psk_sig(keymat, TRUE, this->ike_sa_init, this->nonce,
+									 key->get_key(key), this->ppk, other_id,
+									 this->reserved, &auth_data))
+			{
+				continue;
+			}
+			if (auth_data.len && chunk_equals_const(auth_data, recv_auth_data))
+			{
+				DBG1(DBG_IKE, "authentication of '%Y' with %N successful with linked key",
+					 other_id, auth_method_names, AUTH_PSK);
+				authenticated = TRUE;
+			}
+			chunk_free(&auth_data);
 		}
-		if (auth_data.len && chunk_equals_const(auth_data, recv_auth_data))
-		{
-			DBG1(DBG_IKE, "authentication of '%Y' with %N successful",
-				 other_id, auth_method_names, AUTH_PSK);
-			authenticated = TRUE;
-		}
-		chunk_free(&auth_data);
 	}
 	enumerator->destroy(enumerator);
+
+	DESTROY_IF(local_ndm_id);
+	DESTROY_IF(remote_ndm_id);
+
+	/* Linked key was not found, try to use another */
+
+	if (!authenticated)
+	{
+		DBG1(DBG_IKE, "linked key for crypto map '%s' is not found, still searching",
+			this->ike_sa->get_name(this->ike_sa));
+
+		enumerator = lib->credmgr->create_shared_enumerator(lib->credmgr,
+													SHARED_IKE, my_id, other_id);
+		while (!authenticated && enumerator->enumerate(enumerator, &key, NULL, NULL))
+		{
+			keys_found++;
+
+			if (!keymat->get_psk_sig(keymat, TRUE, this->ike_sa_init, this->nonce,
+								 key->get_key(key), this->ppk, other_id,
+								 this->reserved, &auth_data))
+			{
+				continue;
+			}
+			if (auth_data.len && chunk_equals_const(auth_data, recv_auth_data))
+			{
+				DBG1(DBG_IKE, "authentication of '%Y' with %N successful",
+					 other_id, auth_method_names, AUTH_PSK);
+				authenticated = TRUE;
+			}
+			chunk_free(&auth_data);
+		}
+		enumerator->destroy(enumerator);
+	}
 
 	if (!authenticated)
 	{
