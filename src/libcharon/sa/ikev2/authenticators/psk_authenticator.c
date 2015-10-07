@@ -61,18 +61,32 @@ METHOD(authenticator_t, build, status_t,
 	shared_key_t *key;
 	chunk_t auth_data;
 	keymat_v2_t *keymat;
+	char *ike_sa_name;
 
 	keymat = (keymat_v2_t*)this->ike_sa->get_keymat(this->ike_sa);
-	my_id = this->ike_sa->get_my_id(this->ike_sa);
-	other_id = this->ike_sa->get_other_id(this->ike_sa);
-	DBG1(DBG_IKE, "authentication of '%Y' (myself) with %N",
-		 my_id, auth_method_names, AUTH_PSK);
-	key = lib->credmgr->get_shared(lib->credmgr, SHARED_IKE, my_id, other_id);
-	if (key == NULL)
+
+	/* first of all, try to search linked PSKs */
+	ike_sa_name = this->ike_sa->get_name(this->ike_sa);
+	key = lib->credmgr->get_shared_crypto_map(lib->credmgr, SHARED_IKE,
+		ike_sa_name);
+	if (key != NULL)
 	{
-		DBG1(DBG_IKE, "no shared key found for '%Y' - '%Y'", my_id, other_id);
-		return NOT_FOUND;
+		DBG1(DBG_IKE, "found linked key for crypto map '%s'", ike_sa_name);
+	} else
+	{
+		DBG1(DBG_IKE, "linked key for crypto map '%s' is not found, still searching", ike_sa_name);
+		my_id = this->ike_sa->get_my_id(this->ike_sa);
+		other_id = this->ike_sa->get_other_id(this->ike_sa);
+		DBG1(DBG_IKE, "authentication of '%Y' (myself) with %N",
+			 my_id, auth_method_names, AUTH_PSK);
+		key = lib->credmgr->get_shared(lib->credmgr, SHARED_IKE, my_id, other_id);
+		if (key == NULL)
+		{
+			DBG1(DBG_IKE, "no shared key found for '%Y' - '%Y'", my_id, other_id);
+			return NOT_FOUND;
+		}
 	}
+
 	if (!keymat->get_psk_sig(keymat, FALSE, this->ike_sa_init, this->nonce,
 						key->get_key(key), my_id, this->reserved, &auth_data))
 	{

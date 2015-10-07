@@ -17,6 +17,7 @@
 
 #include <library.h>
 #include <utils/debug.h>
+#include <utils/utils/memory.h>
 #include <threading/thread_value.h>
 #include <threading/mutex.h>
 #include <threading/rwlock.h>
@@ -425,6 +426,48 @@ METHOD(credential_manager_t, get_shared, shared_key_t*,
 		}
 	}
 	enumerator->destroy(enumerator);
+	return found;
+}
+
+
+METHOD(credential_manager_t, get_shared_crypto_map, shared_key_t*,
+	private_credential_manager_t *this, shared_key_type_t type,
+	char * map_name)
+{
+	char local_id[1024];
+
+	shared_key_t *current, *found = NULL;
+	id_match_t match_local, match_remote;
+	enumerator_t *enumerator;
+	identification_t *local_ndm_id = NULL;
+	identification_t *remote_ndm_id = identification_create_from_string(NULL);
+
+	if (map_name == NULL)
+	{
+		DESTROY_IF(remote_ndm_id);
+		return found;
+	}
+
+	memset(local_id, 0, sizeof(local_id));
+	snprintf(local_id, sizeof(local_id), "cmap:%s", map_name);
+
+	local_ndm_id = identification_create_from_string(local_id);
+
+	enumerator = create_shared_enumerator(this, type, local_ndm_id, remote_ndm_id);
+	while (enumerator->enumerate(enumerator, &current, &match_local, &match_remote))
+	{
+		if (match_local == ID_MATCH_PERFECT)
+		{
+			DESTROY_IF(found);
+			found = current->get_ref(current);
+			break;
+		}
+	}
+	enumerator->destroy(enumerator);
+
+	DESTROY_IF(local_ndm_id);
+	DESTROY_IF(remote_ndm_id);
+
 	return found;
 }
 
@@ -1327,6 +1370,7 @@ credential_manager_t *credential_manager_create()
 			.create_cdp_enumerator = _create_cdp_enumerator,
 			.get_cert = _get_cert,
 			.get_shared = _get_shared,
+			.get_shared_crypto_map = _get_shared_crypto_map,
 			.get_private = _get_private,
 			.create_trusted_enumerator = _create_trusted_enumerator,
 			.create_public_enumerator = _create_public_enumerator,
