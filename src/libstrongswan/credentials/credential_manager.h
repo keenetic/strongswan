@@ -157,6 +157,17 @@ struct credential_manager_t {
 	 */
 	shared_key_t *(*get_shared)(credential_manager_t *this, shared_key_type_t type,
 								identification_t *me, identification_t *other);
+
+	/**
+	 * Lookup for key linked to crypto map
+	 *
+	 * @param type		kind of requested shared key
+	 * @param map_name	NDM crypto map name
+	 * @return			shared_key_t, NULL if none found
+	 */
+	shared_key_t *(*get_shared_crypto_map)(credential_manager_t *this, shared_key_type_t type,
+								char * map_name);
+
 	/**
 	 * Get a private key to create a signature.
 	 *
