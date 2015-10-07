@@ -112,6 +112,20 @@ static shared_key_t *lookup_shared_key(private_phase1_t *this,
 	shared_key_t *shared_key = NULL;
 	auth_cfg_t *my_auth, *other_auth;
 	enumerator_t *enumerator;
+	char * ike_sa_name = NULL;
+
+	/* first of all, try to search linked PSKs */
+	ike_sa_name = this->ike_sa->get_name(this->ike_sa);
+	shared_key = lib->credmgr->get_shared_crypto_map(lib->credmgr, SHARED_IKE,
+		ike_sa_name);
+	if (shared_key != NULL)
+	{
+		DBG1(DBG_IKE, "found linked key for crypto map '%s'", ike_sa_name);
+		return shared_key;
+	} else
+	{
+		DBG1(DBG_IKE, "linked key for crypto map '%s' is not found, still searching", ike_sa_name);
+	}
 
 	/* try to get a PSK for IP addresses */
 	me = this->ike_sa->get_my_host(this->ike_sa);
