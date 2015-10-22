@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <library.h>
 #include <daemon.h>
 #include <processing/jobs/callback_job.h>
