@@ -228,7 +228,7 @@ static bool queue(private_netlink_socket_t *this, struct nlmsghdr *buf)
 	}
 	else
 	{
-		DBG1(DBG_KNL, "received unknown netlink seq %u, ignored", seq);
+		DBG3(DBG_KNL, "received unknown netlink seq %u, ignored", seq);
 	}
 	this->mutex->unlock(this->mutex);
 
