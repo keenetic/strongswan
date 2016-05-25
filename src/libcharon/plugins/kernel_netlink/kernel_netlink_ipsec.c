@@ -1380,7 +1380,13 @@ METHOD(kernel_ipsec_t, add_sa, status_t,
 		switch (int_alg)
 		{
 			case AUTH_HMAC_MD5_128:
+#ifndef __RT6XXX__
+			/* We use patched 2.6.22 kernel on RT6xxx with default truncation for
+			 * sha256 set to 128 instead of 96 bits in vanilla kernel.
+			 * So prevent sending unknown netlink message for generic
+			 * sha256_128 hmac algo */
 			case AUTH_HMAC_SHA2_256_128:
+#endif // __RT6XXX__
 				trunc_len = 128;
 				break;
 			case AUTH_HMAC_SHA1_160:
