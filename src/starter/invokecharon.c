@@ -41,6 +41,14 @@ pid_t starter_charon_pid(void)
 	return _charon_pid;
 }
 
+int starter_charon_send_sighup(void)
+{
+	if (_charon_pid)
+	{
+		kill(_charon_pid, SIGHUP);
+	}
+}
+
 void starter_charon_sigchild(pid_t pid, int status)
 {
 	if (pid == _charon_pid)
