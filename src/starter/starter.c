@@ -689,6 +689,8 @@ int main (int argc, char **argv)
 		if (_action_ & FLAG_ACTION_UPDATE)
 		{
 			_action_ &= ~FLAG_ACTION_UPDATE;
+			starter_charon_send_sighup();
+
 			DBG2(DBG_APP, "Reloading config...");
 			new_cfg = confread_load(config_file);
 
