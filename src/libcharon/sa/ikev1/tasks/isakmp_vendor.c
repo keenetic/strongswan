@@ -206,7 +206,7 @@ static bool is_known_vid(chunk_t data, int i)
 static void build(private_isakmp_vendor_t *this, message_t *message)
 {
 	vendor_id_payload_t *vid_payload;
-	bool strongswan, cisco_unity, fragmentation;
+	bool strongswan, cisco_unity, fragmentation, xauth;
 	ike_cfg_t *ike_cfg;
 	int i;
 
@@ -214,8 +214,11 @@ static void build(private_isakmp_vendor_t *this, message_t *message)
 										 "%s.send_vendor_id", FALSE, lib->ns);
 	cisco_unity = lib->settings->get_bool(lib->settings,
 										 "%s.cisco_unity", FALSE, lib->ns);
+	xauth = lib->settings->get_bool(lib->settings,
+										 "%s.xauth_vid_as_initiator", TRUE, lib->ns);
 	ike_cfg = this->ike_sa->get_ike_cfg(this->ike_sa);
 	fragmentation = ike_cfg->fragmentation(ike_cfg) != FRAGMENTATION_NO;
+
 	if (!this->initiator && fragmentation)
 	{
 		fragmentation = this->ike_sa->supports_extension(this->ike_sa,
@@ -226,9 +229,11 @@ static void build(private_isakmp_vendor_t *this, message_t *message)
 		if (vendor_ids[i].send ||
 		   (vendor_ids[i].extension == EXT_STRONGSWAN && strongswan) ||
 		   (vendor_ids[i].extension == EXT_CISCO_UNITY && cisco_unity) ||
-		   (vendor_ids[i].extension == EXT_IKE_FRAGMENTATION && fragmentation))
+		   (vendor_ids[i].extension == EXT_IKE_FRAGMENTATION && fragmentation) ||
+		   (vendor_ids[i].extension == EXT_XAUTH && xauth) )
 		{
-			DBG2(DBG_IKE, "sending %s vendor ID", vendor_ids[i].desc);
+			DBG1(DBG_IKE, "sending %s vendor ID", vendor_ids[i].desc);
+
 			vid_payload = vendor_id_payload_create_data(PLV1_VENDOR_ID,
 				chunk_clone(chunk_create(vendor_ids[i].id, vendor_ids[i].len)));
 			message->add_payload(message, &vid_payload->payload_interface);
@@ -239,7 +244,7 @@ static void build(private_isakmp_vendor_t *this, message_t *message)
 		if ((this->initiator && vendor_natt_ids[i].send) ||
 			this->best_natt_ext == i)
 		{
-			DBG2(DBG_IKE, "sending %s vendor ID", vendor_natt_ids[i].desc);
+			DBG1(DBG_IKE, "sending %s vendor ID", vendor_natt_ids[i].desc);
 			vid_payload = vendor_id_payload_create_data(PLV1_VENDOR_ID,
 							chunk_clone(chunk_create(vendor_natt_ids[i].id,
 													 vendor_natt_ids[i].len)));
