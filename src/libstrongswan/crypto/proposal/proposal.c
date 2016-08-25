@@ -1418,8 +1418,8 @@ proposal_t *proposal_select(linked_list_t *configured, linked_list_t *supplied,
 			selected = proposal->select(proposal, match, flags);
 			if (selected)
 			{
-				DBG2(DBG_CFG, "received proposals: %#P", supplied);
-				DBG2(DBG_CFG, "configured proposals: %#P", configured);
+				DBG1(DBG_CFG, "received proposals: %#P", supplied);
+				DBG1(DBG_CFG, "configured proposals: %#P", configured);
 				DBG1(DBG_CFG, "selected proposal: %P", selected);
 				break;
 			}
