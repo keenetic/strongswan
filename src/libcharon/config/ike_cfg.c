@@ -332,9 +332,9 @@ METHOD(ike_cfg_t, select_proposal, proposal_t*,
 				/* they match, return */
 				stored_enum->destroy(stored_enum);
 				supplied_enum->destroy(supplied_enum);
-				DBG2(DBG_CFG, "received proposals: %#P", proposals);
-				DBG2(DBG_CFG, "configured proposals: %#P", this->proposals);
-				DBG2(DBG_CFG, "selected proposal: %P", selected);
+				DBG1(DBG_CFG, "received proposals: %#P", proposals);
+				DBG1(DBG_CFG, "configured proposals: %#P", this->proposals);
+				DBG1(DBG_CFG, "selected proposal: %P", selected);
 				return selected;
 			}
 		}
