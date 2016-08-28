@@ -1151,6 +1151,8 @@ static void handle_child_sa_failure(private_child_create_t *this,
 		lib->scheduler->schedule_job_ms(lib->scheduler, (job_t*)
 			delete_ike_sa_job_create(this->ike_sa->get_id(this->ike_sa), TRUE),
 			100);
+
+		charon->bus->alert(charon->bus, ALERT_CHILD_SA_FAILURE);
 	}
 	else
 	{
