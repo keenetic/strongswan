@@ -272,6 +272,10 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_INVALID_DH_GROUP_IKEV2_IPSEC);
 			snprintf(msg.str, sizeof(msg.str), "Invalid DH group");
 			break;
+		case ALERT_CHILD_SA_FAILURE:
+			msg.type = htonl(ERROR_NOTIFY_CHILD_SA_FAILURE);
+			snprintf(msg.str, sizeof(msg.str), "CHILD_SA installation failure");
+			break;
 
 		case ALERT_INVALID_KEY:
 			msg.type = htonl(ERROR_NOTIFY_INVALID_KEY);
