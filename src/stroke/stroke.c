@@ -106,37 +106,6 @@ static int send_stroke_msg(stroke_msg_t *msg)
 		return -1;
 	}
 
-	while ((count = stream->read(stream, buffer, sizeof(buffer)-1, TRUE)) > 0)
-	{
-		buffer[count] = '\0';
-
-		/* we prompt if we receive a magic keyword */
-		if ((count >= 12 && streq(buffer + count - 12, "Passphrase:\n")) ||
-			(count >= 10 && streq(buffer + count - 10, "Password:\n")) ||
-			(count >=  5 && streq(buffer + count -  5, "PIN:\n")))
-		{
-			/* remove trailing newline */
-			pass = strrchr(buffer, '\n');
-			if (pass)
-			{
-				*pass = ' ';
-			}
-#ifdef HAVE_GETPASS
-			pass = getpass(buffer);
-#else
-			pass = "";
-#endif
-			if (pass)
-			{
-				stream->write_all(stream, pass, strlen(pass));
-				stream->write_all(stream, "\n", 1);
-			}
-		}
-		else
-		{
-			printf("%s", buffer);
-		}
-	}
 	if (count < 0)
 	{
 		fprintf(stderr, "reading stroke response failed\n");
