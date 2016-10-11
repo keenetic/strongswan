@@ -106,6 +106,16 @@ static int send_stroke_msg(stroke_msg_t *msg)
 		return -1;
 	}
 
+	if( msg->type == STR_STATUS_ALL )
+	{
+		while ((count = stream->read(stream, buffer, sizeof(buffer)-1, TRUE)) > 0)
+		{
+			buffer[count] = '\0';
+
+			printf("%s", buffer);
+		}
+	}
+
 	if (count < 0)
 	{
 		fprintf(stderr, "reading stroke response failed\n");
