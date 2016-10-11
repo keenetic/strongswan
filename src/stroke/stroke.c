@@ -76,8 +76,7 @@ static void push_string_impl(stroke_msg_t **msg, size_t offset, char *string)
 static int send_stroke_msg(stroke_msg_t *msg)
 {
 	stream_t *stream;
-	char *uri, buffer[512], *pass;
-	int count;
+	char *uri;
 
 	if (msg->length == UINT16_MAX)
 	{
@@ -106,41 +105,22 @@ static int send_stroke_msg(stroke_msg_t *msg)
 		return -1;
 	}
 
-	while ((count = stream->read(stream, buffer, sizeof(buffer)-1, TRUE)) > 0)
+	if( msg->type == STR_STATUS_ALL )
 	{
-		buffer[count] = '\0';
+		int count;
+		char buffer[512];
 
-		/* we prompt if we receive a magic keyword */
-		if ((count >= 12 && streq(buffer + count - 12, "Passphrase:\n")) ||
-			(count >= 10 && streq(buffer + count - 10, "Password:\n")) ||
-			(count >=  5 && streq(buffer + count -  5, "PIN:\n")))
+		while ((count = stream->read(stream, buffer, sizeof(buffer)-1, TRUE)) > 0)
 		{
-			/* remove trailing newline */
-			pass = strrchr(buffer, '\n');
-			if (pass)
-			{
-				*pass = ' ';
-			}
-#ifdef HAVE_GETPASS
-			pass = getpass(buffer);
-#else
-			pass = "";
-#endif
-			if (pass)
-			{
-				stream->write_all(stream, pass, strlen(pass));
-				stream->write_all(stream, "\n", 1);
-			}
-		}
-		else
-		{
+			buffer[count] = '\0';
 			printf("%s", buffer);
 		}
+		if (count < 0)
+		{
+			fprintf(stderr, "reading stroke response failed\n");
+		}
 	}
-	if (count < 0)
-	{
-		fprintf(stderr, "reading stroke response failed\n");
-	}
+
 	stream->destroy(stream);
 	free(msg);
 	return 0;
