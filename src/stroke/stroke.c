@@ -76,8 +76,7 @@ static void push_string_impl(stroke_msg_t **msg, size_t offset, char *string)
 static int send_stroke_msg(stroke_msg_t *msg)
 {
 	stream_t *stream;
-	char *uri, buffer[512], *pass;
-	int count;
+	char *uri;
 
 	if (msg->length == UINT16_MAX)
 	{
@@ -106,10 +105,22 @@ static int send_stroke_msg(stroke_msg_t *msg)
 		return -1;
 	}
 
-	if (count < 0)
+	if( msg->type == STR_STATUS_ALL )
 	{
-		fprintf(stderr, "reading stroke response failed\n");
+		int count;
+		char buffer[512];
+
+		while ((count = stream->read(stream, buffer, sizeof(buffer)-1, TRUE)) > 0)
+		{
+			buffer[count] = '\0';
+			printf("%s", buffer);
+		}
+		if (count < 0)
+		{
+			fprintf(stderr, "reading stroke response failed\n");
+		}
 	}
+
 	stream->destroy(stream);
 	free(msg);
 	return 0;
