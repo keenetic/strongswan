@@ -2622,6 +2622,11 @@ static status_t manage_srcroute(private_kernel_netlink_net_t *this,
 	chunk.len = sizeof(ifindex);
 	netlink_add_attribute(hdr, RTA_OIF, chunk, sizeof(request));
 
+	this->mtu = lib->settings->get_int(lib->settings,
+						"%s.plugins.kernel-netlink.mtu", 0, lib->ns);
+	this->mss = lib->settings->get_int(lib->settings,
+						"%s.plugins.kernel-netlink.mss", 0, lib->ns);
+
 	if (this->mtu || this->mss)
 	{
 		chunk = chunk_alloca(RTA_LENGTH((sizeof(struct rtattr) +
