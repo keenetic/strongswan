@@ -260,6 +260,10 @@ METHOD(listener_t, alert, bool,
 			msg.type = htonl(ERROR_NOTIFY_XAUTH_SERVER_FAILED);
 			snprintf(msg.str, sizeof(msg.str), "XAuth server auth was failed");
 			break;
+		case ALERT_INVALID_TRAFFIC_SELECTORS_IKEV1:
+			msg.type = htonl(ERROR_NOTIFY_INVALID_TRAFFIC_SELECTORS_IKEV1);
+			snprintf(msg.str, sizeof(msg.str), "Invalid traffic selectors");
+			break;
 
 		case ALERT_PROPOSAL_MISMATCH_IKEV2_IKE:
 			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV2_IKE);
