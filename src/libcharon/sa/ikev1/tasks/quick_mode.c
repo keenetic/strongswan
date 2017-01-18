@@ -654,6 +654,9 @@ static bool get_ts(private_quick_mode_t *this, message_t *message)
 			DESTROY_IF(tsrsub);
 			tsi->destroy(tsi);
 			tsr->destroy(tsr);
+
+			charon->bus->alert(charon->bus, ALERT_INVALID_TRAFFIC_SELECTORS_IKEV1);
+
 			return FALSE;
 		}
 		tsi->destroy(tsi);
