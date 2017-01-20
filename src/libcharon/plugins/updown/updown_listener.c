@@ -26,6 +26,8 @@
 #include <daemon.h>
 #include <config/child_cfg.h>
 
+#define NDM_LEFT_UPDOWN_	"/tmp/ipsec/charon.left.updown"
+
 typedef struct private_updown_listener_t private_updown_listener_t;
 
 /**
@@ -250,9 +252,86 @@ static char* get_port(traffic_selector_t *me, traffic_selector_t *other,
 }
 
 /**
- * Invoke the updown script once for given traffic selectors
+ * Invoke the updown script for IKE SA
  */
-static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
+static void invoke_ikesa(private_updown_listener_t *this, ike_sa_t *ike_sa,
+						bool up)
+{
+	host_t *me, *other;
+	int out;
+	FILE *shell;
+	process_t *process;
+	char *envp[128] = {};
+
+	me = ike_sa->get_my_host(ike_sa);
+	other = ike_sa->get_other_host(ike_sa);
+
+	push_env(envp, countof(envp), "PATH=%s", getenv("PATH"));
+	push_env(envp, countof(envp), "PLUTO_VERSION=1.1");
+
+	push_env(envp, countof(envp), "NDM_ACTION=%s", up ? "up-ikesa" : "down-ikesa");
+	push_env(envp, countof(envp), "PLUTO_CONNECTION=%s",
+			 ike_sa->get_name(ike_sa));
+	push_env(envp, countof(envp), "PLUTO_UNIQUEID=%u",
+			 ike_sa->get_unique_id(ike_sa));
+
+	push_env(envp, countof(envp), "PLUTO_ME=%H", me);
+	push_env(envp, countof(envp), "PLUTO_MY_ID=%Y", ike_sa->get_my_id(ike_sa));
+	push_env(envp, countof(envp), "PLUTO_PEER=%H", other);
+	push_env(envp, countof(envp), "PLUTO_PEER_ID=%Y",
+			 ike_sa->get_other_id(ike_sa));
+	if (ike_sa->has_condition(ike_sa, COND_EAP_AUTHENTICATED) ||
+		ike_sa->has_condition(ike_sa, COND_XAUTH_AUTHENTICATED))
+	{
+		push_env(envp, countof(envp), "PLUTO_XAUTH_ID=%Y",
+				 ike_sa->get_other_eap_id(ike_sa));
+	}
+
+	process = process_start_shell(envp, NULL, &out, NULL, "%s",
+								  NDM_LEFT_UPDOWN_);
+	if (process)
+	{
+		shell = fdopen(out, "r");
+		if (shell)
+		{
+			while (TRUE)
+			{
+				char resp[128];
+
+				if (fgets(resp, sizeof(resp), shell) == NULL)
+				{
+					if (ferror(shell))
+					{
+						DBG1(DBG_CHD, "error reading from updown script");
+					}
+					break;
+				}
+				else
+				{
+					char *e = resp + strlen(resp);
+					if (e > resp && e[-1] == '\n')
+					{
+						e[-1] = '\0';
+					}
+					DBG1(DBG_CHD, "updown: %s", resp);
+				}
+			}
+			fclose(shell);
+		}
+		else
+		{
+			close(out);
+		}
+		process->wait(process, NULL);
+	}
+
+	free_env(envp);
+}
+
+/**
+ * Invoke the updown script for given traffic selectors
+ */
+static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 						child_sa_t *child_sa, child_cfg_t *config, bool up,
 						traffic_selector_t *my_ts, traffic_selector_t *other_ts)
 {
@@ -352,6 +431,11 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 		default:
 			push_env(envp, countof(envp), "NDM_SA_MODE=undef");
 	};
+
+	push_env(envp, countof(envp), "NDM_CHILD_SPI_IN=%u",
+		child_sa->get_spi(child_sa, true));
+	push_env(envp, countof(envp), "NDM_CHILD_SPI_OUT=%u",
+		child_sa->get_spi(child_sa, false));
 
 	push_env(envp, countof(envp), "PLUTO_MY_PROTOCOL=%u",
 			 my_ts->get_protocol(my_ts));
@@ -460,6 +544,45 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	free_env(envp);
 }
 
+METHOD(listener_t, ike_updown, bool,
+	private_updown_listener_t *this, ike_sa_t *ike_sa, bool up)
+{
+	invoke_ikesa(this, ike_sa, up);
+
+	return TRUE;
+}
+
+METHOD(listener_t, child_rekey, bool,
+	private_updown_listener_t *this, ike_sa_t *ike_sa,
+	child_sa_t *old_child_sa, child_sa_t *new_child_sa)
+{
+	traffic_selector_t *my_ts, *other_ts;
+	enumerator_t *enumerator;
+	child_cfg_t *config;
+
+	config = old_child_sa->get_config(old_child_sa);
+	if (config->get_updown(config))
+	{
+		enumerator = old_child_sa->create_policy_enumerator(old_child_sa);
+		while (enumerator->enumerate(enumerator, &my_ts, &other_ts))
+		{
+			invoke_childsa(this, ike_sa, old_child_sa, config, FALSE, my_ts, other_ts);
+		}
+		enumerator->destroy(enumerator);
+
+		config = new_child_sa->get_config(new_child_sa);
+
+		enumerator = new_child_sa->create_policy_enumerator(new_child_sa);
+		while (enumerator->enumerate(enumerator, &my_ts, &other_ts))
+		{
+			invoke_childsa(this, ike_sa, new_child_sa, config, TRUE, my_ts, other_ts);
+		}
+		enumerator->destroy(enumerator);
+	}
+
+	return TRUE;
+}
+
 METHOD(listener_t, child_updown, bool,
 	private_updown_listener_t *this, ike_sa_t *ike_sa, child_sa_t *child_sa,
 	bool up)
@@ -474,7 +597,7 @@ METHOD(listener_t, child_updown, bool,
 		enumerator = child_sa->create_policy_enumerator(child_sa);
 		while (enumerator->enumerate(enumerator, &my_ts, &other_ts))
 		{
-			invoke_once(this, ike_sa, child_sa, config, up, my_ts, other_ts);
+			invoke_childsa(this, ike_sa, child_sa, config, up, my_ts, other_ts);
 		}
 		enumerator->destroy(enumerator);
 	}
@@ -498,7 +621,9 @@ updown_listener_t *updown_listener_create(updown_handler_t *handler)
 	INIT(this,
 		.public = {
 			.listener = {
+				.ike_updown = _ike_updown,
 				.child_updown = _child_updown,
+				.child_rekey = _child_rekey,
 			},
 			.destroy = _destroy,
 		},
