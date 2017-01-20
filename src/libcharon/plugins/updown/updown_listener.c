@@ -25,6 +25,8 @@
 #include <daemon.h>
 #include <config/child_cfg.h>
 
+#define NDM_LEFT_UPDOWN_	"/tmp/ipsec/charon.left.updown"
+
 typedef struct private_updown_listener_t private_updown_listener_t;
 
 /**
@@ -249,6 +251,84 @@ static char* get_port(traffic_selector_t *me, traffic_selector_t *other,
 }
 
 /**
+ * Invoke the updown script for IKE SA
+ */
+static void invoke_ikesa(private_updown_listener_t *this, ike_sa_t *ike_sa,
+						bool up)
+{
+	host_t *me, *other;
+	int out;
+	FILE *shell;
+	process_t *process;
+	char port_buf[PORT_BUF_LEN];
+	char *envp[128] = {};
+
+	me = ike_sa->get_my_host(ike_sa);
+	other = ike_sa->get_other_host(ike_sa);
+
+	push_env(envp, countof(envp), "PATH=%s", getenv("PATH"));
+	push_env(envp, countof(envp), "PLUTO_VERSION=1.1");
+
+	push_env(envp, countof(envp), "NDM_ACTION=%s", up ? "up-ikesa" : "down-ikesa");
+	push_env(envp, countof(envp), "PLUTO_CONNECTION=%s",
+			 ike_sa->get_name(ike_sa));
+	push_env(envp, countof(envp), "PLUTO_UNIQUEID=%u",
+			 ike_sa->get_unique_id(ike_sa));
+
+	push_env(envp, countof(envp), "PLUTO_ME=%H", me);
+	push_env(envp, countof(envp), "PLUTO_MY_ID=%Y", ike_sa->get_my_id(ike_sa));
+	push_env(envp, countof(envp), "PLUTO_PEER=%H", other);
+	push_env(envp, countof(envp), "PLUTO_PEER_ID=%Y",
+			 ike_sa->get_other_id(ike_sa));
+	if (ike_sa->has_condition(ike_sa, COND_EAP_AUTHENTICATED) ||
+		ike_sa->has_condition(ike_sa, COND_XAUTH_AUTHENTICATED))
+	{
+		push_env(envp, countof(envp), "PLUTO_XAUTH_ID=%Y",
+				 ike_sa->get_other_eap_id(ike_sa));
+	}
+
+	process = process_start_shell(envp, NULL, &out, NULL, "%s",
+								  NDM_LEFT_UPDOWN_);
+	if (process)
+	{
+		shell = fdopen(out, "r");
+		if (shell)
+		{
+			while (TRUE)
+			{
+				char resp[128];
+
+				if (fgets(resp, sizeof(resp), shell) == NULL)
+				{
+					if (ferror(shell))
+					{
+						DBG1(DBG_CHD, "error reading from updown script");
+					}
+					break;
+				}
+				else
+				{
+					char *e = resp + strlen(resp);
+					if (e > resp && e[-1] == '\n')
+					{
+						e[-1] = '\0';
+					}
+					DBG1(DBG_CHD, "updown: %s", resp);
+				}
+			}
+			fclose(shell);
+		}
+		else
+		{
+			close(out);
+		}
+		process->wait(process, NULL);
+	}
+
+	free_env(envp);
+}
+
+/**
  * Invoke the updown script once for given traffic selectors
  */
 static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
@@ -456,6 +536,14 @@ static void invoke_once(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	free_env(envp);
 }
 
+METHOD(listener_t, ike_updown, bool,
+	private_updown_listener_t *this, ike_sa_t *ike_sa, bool up)
+{
+	invoke_ikesa(this, ike_sa, up);
+
+	return TRUE;
+}
+
 METHOD(listener_t, child_updown, bool,
 	private_updown_listener_t *this, ike_sa_t *ike_sa, child_sa_t *child_sa,
 	bool up)
@@ -494,6 +582,7 @@ updown_listener_t *updown_listener_create(updown_handler_t *handler)
 	INIT(this,
 		.public = {
 			.listener = {
+				.ike_updown = _ike_updown,
 				.child_updown = _child_updown,
 			},
 			.destroy = _destroy,
