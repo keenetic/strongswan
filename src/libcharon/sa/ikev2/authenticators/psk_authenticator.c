@@ -81,13 +81,14 @@ METHOD(authenticator_t, build, status_t,
 	ike_sa_name = this->ike_sa->get_name(this->ike_sa);
 	key = lib->credmgr->get_shared_crypto_map(lib->credmgr, SHARED_IKE,
 		ike_sa_name);
+	my_id = this->ike_sa->get_my_id(this->ike_sa);
+
 	if (key != NULL)
 	{
 		DBG1(DBG_IKE, "found linked key for crypto map '%s'", ike_sa_name);
 	} else
 	{
 		DBG1(DBG_IKE, "linked key for crypto map '%s' is not found, still searching", ike_sa_name);
-		my_id = this->ike_sa->get_my_id(this->ike_sa);
 		other_id = this->ike_sa->get_other_id(this->ike_sa);
 		DBG1(DBG_IKE, "authentication of '%Y' (myself) with %N",
 			 my_id, auth_method_names, AUTH_PSK);
