@@ -1190,12 +1190,12 @@ static void process_link(private_kernel_netlink_net_t *this,
 				if (!(entry->flags & IFF_UP) && (msg->ifi_flags & IFF_UP))
 				{
 					update = update_routes = TRUE;
-					DBG1(DBG_KNL, "interface %s activated", name);
+					DBG2(DBG_KNL, "interface %s activated", name);
 				}
 				if ((entry->flags & IFF_UP) && !(msg->ifi_flags & IFF_UP))
 				{
 					update = TRUE;
-					DBG1(DBG_KNL, "interface %s deactivated", name);
+					DBG2(DBG_KNL, "interface %s deactivated", name);
 				}
 			}
 			entry->flags = msg->ifi_flags;
@@ -1211,7 +1211,7 @@ static void process_link(private_kernel_netlink_net_t *this,
 					if (event && current->usable)
 					{
 						update = TRUE;
-						DBG1(DBG_KNL, "interface %s deleted", current->ifname);
+						DBG2(DBG_KNL, "interface %s deleted", current->ifname);
 					}
 					/* TODO: move virtual IPs installed on this interface to
 					 * another interface? */
@@ -1328,7 +1328,7 @@ static void process_addr(private_kernel_netlink_net_t *this,
 				if (iface->usable)
 				{
 					changed = TRUE;
-					DBG1(DBG_KNL, "%H disappeared from %s", host,
+					DBG2(DBG_KNL, "%H disappeared from %s", host,
 						 iface->ifname);
 				}
 				addr_map_entry_remove(this->addrs, addr, iface);
@@ -1351,7 +1351,7 @@ static void process_addr(private_kernel_netlink_net_t *this,
 				addr_map_entry_add(this->addrs, addr, iface);
 				if (event && iface->usable)
 				{
-					DBG1(DBG_KNL, "%H appeared on %s", host, iface->ifname);
+					DBG2(DBG_KNL, "%H appeared on %s", host, iface->ifname);
 				}
 			}
 		}
