@@ -239,6 +239,13 @@ struct ike_cfg_t {
 	childless_t (*childless)(ike_cfg_t *this);
 
 	/**
+	 * Don't initiate rekey as passive end
+	 *
+	 * @return				TRUE if setting is set
+	 */
+	bool (*get_no_reauth_passive)(ike_cfg_t *this);
+
+	/**
 	 * Get the first algorithm of a certain transform type that's contained in
 	 * any of the configured proposals.
 	 *
@@ -305,6 +312,7 @@ struct ike_cfg_create_t {
 	childless_t childless;
 	/** DSCP value to send IKE packets with */
 	uint8_t dscp;
+	bool no_reauth_passive;
 };
 
 /**
