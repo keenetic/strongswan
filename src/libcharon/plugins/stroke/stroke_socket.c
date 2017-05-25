@@ -222,6 +222,7 @@ static void stroke_add_conn(private_stroke_socket_t *this, stroke_msg_t *msg)
 	DBG_OPT("  mediated_by=%s", msg->add_conn.ikeme.mediated_by);
 	DBG_OPT("  me_peerid=%s", msg->add_conn.ikeme.peerid);
 	DBG_OPT("  keyexchange=ikev%u", msg->add_conn.version);
+	DBG_OPT("  no_reauth_passive=%s", msg->add_conn.no_reauth_passive ? "yes" : "no");
 
 	this->config->add(this->config, msg);
 	this->attribute->add_dns(this->attribute, msg);
