@@ -2430,7 +2430,7 @@ CALLBACK(config_sn, bool,
 	ike_cfg = ike_cfg_create(peer.version, peer.send_certreq, peer.encap,
 						peer.local_addrs, peer.local_port,
 						peer.remote_addrs, peer.remote_port,
-						peer.fragmentation, peer.dscp);
+						peer.fragmentation, peer.dscp, FALSE);
 
 	cfg = (peer_cfg_create_t){
 		.cert_policy = peer.send_cert,

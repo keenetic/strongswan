@@ -289,7 +289,8 @@ static ike_cfg_t *build_ike_cfg(private_stroke_config_t *this, stroke_msg_t *msg
 								other : msg->add_conn.other.address,
 							 msg->add_conn.other.ikeport,
 							 msg->add_conn.fragmentation,
-							 msg->add_conn.ikedscp);
+							 msg->add_conn.ikedscp,
+							 msg->add_conn.no_reauth_passive);
 
 	if (!add_proposals(this, msg->add_conn.algorithms.ike, ike_cfg,
 					   NULL, PROTO_IKE))

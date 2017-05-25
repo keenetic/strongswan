@@ -105,6 +105,8 @@ struct private_ike_cfg_t {
 	 */
 	fragmentation_t fragmentation;
 
+	bool no_reauth_passive;
+
 	/**
 	 * DSCP value to use on sent IKE packets
 	 */
@@ -382,6 +384,11 @@ METHOD(ike_cfg_t, get_dh_group, diffie_hellman_group_t,
 	return dh_group;
 }
 
+METHOD(ike_cfg_t, get_no_reauth_passive, bool, private_ike_cfg_t *this)
+{
+	return this->no_reauth_passive;
+}
+
 METHOD(ike_cfg_t, equals, bool,
 	private_ike_cfg_t *this, ike_cfg_t *other_public)
 {
@@ -596,7 +603,8 @@ bool ike_cfg_has_address(ike_cfg_t *cfg, host_t *addr, bool local)
 ike_cfg_t *ike_cfg_create(ike_version_t version, bool certreq, bool force_encap,
 						  char *me, uint16_t my_port,
 						  char *other, uint16_t other_port,
-						  fragmentation_t fragmentation, uint8_t dscp)
+						  fragmentation_t fragmentation, uint8_t dscp,
+						  bool no_reauth_passive)
 {
 	private_ike_cfg_t *this;
 
@@ -619,6 +627,7 @@ ike_cfg_t *ike_cfg_create(ike_version_t version, bool certreq, bool force_encap,
 			.get_proposals = _get_proposals,
 			.select_proposal = _select_proposal,
 			.get_dh_group = _get_dh_group,
+			.get_no_reauth_passive = _get_no_reauth_passive,
 			.equals = _equals,
 			.get_ref = _get_ref,
 			.destroy = _destroy,
@@ -637,6 +646,7 @@ ike_cfg_t *ike_cfg_create(ike_version_t version, bool certreq, bool force_encap,
 		.my_port = my_port,
 		.other_port = other_port,
 		.dscp = dscp,
+		.no_reauth_passive = no_reauth_passive,
 		.proposals = linked_list_create(),
 	);
 
