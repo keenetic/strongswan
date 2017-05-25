@@ -277,6 +277,7 @@ static ike_cfg_t *build_ike_cfg(private_stroke_config_t *this, stroke_msg_t *msg
 		.force_encap = msg->add_conn.force_encap,
 		.fragmentation = msg->add_conn.fragmentation,
 		.dscp = msg->add_conn.ikedscp,
+		.no_reauth_passive = msg->add_conn.no_reauth_passive
 	};
 	if (msg->add_conn.me.allow_any)
 	{
@@ -294,6 +295,7 @@ static ike_cfg_t *build_ike_cfg(private_stroke_config_t *this, stroke_msg_t *msg
 	{
 		ike.local_port = charon->socket->get_port(charon->socket, FALSE);
 	}
+
 	ike_cfg = ike_cfg_create(&ike);
 
 	if (!add_proposals(this, msg->add_conn.algorithms.ike, ike_cfg,
