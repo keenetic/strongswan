@@ -161,6 +161,8 @@ struct starter_conn {
 
 		dpd_action_t    close_action;
 
+		bool            no_reauth_passive;
+
 		time_t          inactivity;
 
 		bool            me_mediation;

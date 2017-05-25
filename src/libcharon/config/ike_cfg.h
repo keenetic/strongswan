@@ -199,6 +199,13 @@ struct ike_cfg_t {
 	fragmentation_t (*fragmentation) (ike_cfg_t *this);
 
 	/**
+	 * Don't initiate rekey as passive end
+	 *
+	 * @return				TRUE if setting is set
+	 */
+	bool (*get_no_reauth_passive)(ike_cfg_t *this);
+
+	/**
 	 * Get the DH group to use for IKE_SA setup.
 	 *
 	 * @return				dh group to use for initialization
@@ -253,7 +260,8 @@ struct ike_cfg_t {
 ike_cfg_t *ike_cfg_create(ike_version_t version, bool certreq, bool force_encap,
 						  char *me, uint16_t my_port,
 						  char *other, uint16_t other_port,
-						  fragmentation_t fragmentation, uint8_t dscp);
+						  fragmentation_t fragmentation, uint8_t dscp,
+						  bool no_reauth_passive);
 
 /**
  * Determine the address family of the local or remote address(es).  If multiple
