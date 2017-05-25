@@ -105,6 +105,8 @@ struct private_ike_cfg_t {
 	 */
 	fragmentation_t fragmentation;
 
+	bool no_reauth_passive;
+
 	/**
 	 * childless IKE_SAs
 	 */
@@ -412,6 +414,11 @@ METHOD(ike_cfg_t, get_dh_group, diffie_hellman_group_t,
 	return dh_group;
 }
 
+METHOD(ike_cfg_t, get_no_reauth_passive, bool, private_ike_cfg_t *this)
+{
+	return this->no_reauth_passive;
+}
+
 METHOD(ike_cfg_t, equals, bool,
 	private_ike_cfg_t *this, ike_cfg_t *other_public)
 {
@@ -649,6 +656,7 @@ ike_cfg_t *ike_cfg_create(ike_cfg_create_t *data)
 			.select_proposal = _select_proposal,
 			.has_proposal = _has_proposal,
 			.get_dh_group = _get_dh_group,
+			.get_no_reauth_passive = _get_no_reauth_passive,
 			.equals = _equals,
 			.get_ref = _get_ref,
 			.destroy = _destroy,
@@ -668,6 +676,7 @@ ike_cfg_t *ike_cfg_create(ike_cfg_create_t *data)
 		.my_port = data->local_port,
 		.other_port = data->remote_port,
 		.dscp = data->dscp,
+		.no_reauth_passive = data->no_reauth_passive,
 		.proposals = linked_list_create(),
 	);
 

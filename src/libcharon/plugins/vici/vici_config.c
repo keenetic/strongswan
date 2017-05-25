@@ -2545,6 +2545,7 @@ CALLBACK(config_sn, bool,
 		.fragmentation = peer.fragmentation,
 		.childless = peer.childless,
 		.dscp = peer.dscp,
+		.no_reauth_passive = FALSE
 	};
 	ike_cfg = ike_cfg_create(&ike);
 
