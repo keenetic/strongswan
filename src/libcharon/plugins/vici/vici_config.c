@@ -336,6 +336,7 @@ typedef struct {
 	uint64_t over_time;
 	uint64_t rand_time;
 	uint8_t dscp;
+	bool no_reauth_passive;
 	uint32_t if_id_in;
 	uint32_t if_id_out;
 #ifdef ME
@@ -1916,6 +1917,7 @@ CALLBACK(peer_kv, bool,
 		{ "ppk_required",	parse_bool,			&peer->ppk_required			},
 		{ "if_id_in",		parse_if_id,		&peer->if_id_in				},
 		{ "if_id_out",		parse_if_id,		&peer->if_id_out			},
+		{ "no_reauth_passive", parse_bool,		&peer->no_reauth_passive	},
 #ifdef ME
 		{ "mediation",		parse_bool,			&peer->mediation			},
 		{ "mediated_by",	parse_string,		&peer->mediated_by			},
@@ -2678,6 +2680,7 @@ CALLBACK(config_sn, bool,
 		.fragmentation = peer.fragmentation,
 		.childless = peer.childless,
 		.dscp = peer.dscp,
+		.no_reauth_passive = peer.no_reauth_passive
 	};
 	ike_cfg = ike_cfg_create(&ike);
 

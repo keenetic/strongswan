@@ -1941,7 +1941,7 @@ bool ike_sa_can_reauthenticate(ike_sa_t *public)
 			/* as mediation server we too cannot reauth the IKE_SA */
 			&& !this->is_mediation_server
 #endif /* ME */
-			;
+			&& !this->ike_cfg->get_no_reauth_passive(this->ike_cfg);
 }
 
 METHOD(ike_sa_t, reauth, status_t,
@@ -1964,13 +1964,18 @@ METHOD(ike_sa_t, reauth, status_t,
 	if (!has_condition(this, COND_ORIGINAL_INITIATOR) &&
 		!ike_sa_can_reauthenticate(&this->public))
 	{
-#if DEBUG_LEVEL >= 1
 		time_t del = this->stats[STAT_DELETE];
 		time_t now = time_monotonic(NULL);
+
+		if (this->ike_cfg->get_no_reauth_passive(this->ike_cfg))
+		{
+			DBG0(DBG_IKE, "reauthenticating IKE_SA %s[%d] disabled on passive side",
+				 get_name(this), this->unique_id);
+		}
+
 		DBG1(DBG_IKE, "initiator did not reauthenticate as requested, IKE_SA "
 			 "%s[%d] will timeout in %V", get_name(this), this->unique_id,
 			 &now, &del);
-#endif
 		return FAILED;
 	}
 	DBG0(DBG_IKE, "reauthenticating IKE_SA %s[%d]",
