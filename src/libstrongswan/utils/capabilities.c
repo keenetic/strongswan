@@ -39,6 +39,23 @@
 #endif
 #endif /* !WIN32 */
 
+#if defined(CAPABILITIES_NATIVE)
+#if !defined(capget)
+#include <sys/syscall.h>
+int capget(cap_user_header_t hdrp, cap_user_data_t datap)
+{
+	return syscall(SYS_capget, hdrp, datap);
+}
+#endif /* !defined(capget) */
+#if !defined(capset)
+#include <sys/syscall.h>
+int capset(cap_user_header_t hdrp, const cap_user_data_t datap)
+{
+	return syscall(SYS_capset, hdrp, datap);
+}
+#endif /* !defined(capset) */
+#endif /* defined(CAPABILITIES_NATIVE) */
+
 typedef struct private_capabilities_t private_capabilities_t;
 
 /**
