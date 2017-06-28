@@ -96,6 +96,12 @@ PLUGIN_DEFINE(stroke)
 {
 	private_stroke_plugin_t *this;
 
+	if (!lib->caps->keep(lib->caps, CAP_DAC_OVERRIDE))
+	{
+		DBG1(DBG_NET, "stroke plugin requires CAP_DAC_OVERRIDE capability");
+		return NULL;
+	}
+
 	INIT(this,
 		.public = {
 			.plugin = {
