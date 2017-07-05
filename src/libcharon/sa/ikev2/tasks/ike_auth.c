@@ -1017,6 +1017,7 @@ METHOD(task_t, process_i, status_t,
 							 notify_type_names, type);
 						enumerator->destroy(enumerator);
 						charon->bus->alert(charon->bus, ALERT_LOCAL_AUTH_FAILED);
+						charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
 						feedback_done = TRUE;
 						return FAILED;
 					}
