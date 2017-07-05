@@ -1021,6 +1021,7 @@ METHOD(task_t, process_i, status_t,
 							 notify_type_names, type);
 						enumerator->destroy(enumerator);
 						raise_alerts(this, type);
+						charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
 						return FAILED;
 					}
 					DBG2(DBG_IKE, "received %N notify",
