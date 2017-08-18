@@ -429,6 +429,11 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 			push_env(envp, countof(envp), "NDM_SA_MODE=undef");
 	};
 
+	push_env(envp, countof(envp), "NDM_CHILD_SPI_IN=%u",
+		child_sa->get_spi(child_sa, true));
+	push_env(envp, countof(envp), "NDM_CHILD_SPI_OUT=%u",
+		child_sa->get_spi(child_sa, false));
+
 	push_env(envp, countof(envp), "PLUTO_MY_PROTOCOL=%u",
 			 my_ts->get_protocol(my_ts));
 	push_env(envp, countof(envp), "PLUTO_PEER=%H", other);
