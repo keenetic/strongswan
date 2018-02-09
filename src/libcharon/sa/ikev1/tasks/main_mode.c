@@ -415,6 +415,7 @@ METHOD(task_t, process_r, status_t,
 			if (!this->proposal)
 			{
 				DBG1(DBG_IKE, "no proposal found");
+				charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 				return send_notify(this, NO_PROPOSAL_CHOSEN);
 			}
 			this->ike_sa->set_proposal(this->ike_sa, this->proposal);
@@ -437,11 +438,13 @@ METHOD(task_t, process_r, status_t,
 										DIFFIE_HELLMAN_GROUP, &group, NULL))
 			{
 				DBG1(DBG_IKE, "DH group selection failed");
+				charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
 			if (!this->ph1->create_dh(this->ph1, group))
 			{
 				DBG1(DBG_IKE, "negotiated DH group not supported");
+				charon->bus->alert(charon->bus, ALERT_PROPOSAL_MISMATCH_IKEV1_IKE);
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
 			if (!this->ph1->get_nonce_ke(this->ph1, message))
@@ -461,6 +464,7 @@ METHOD(task_t, process_r, status_t,
 			{
 				DBG1(DBG_IKE, "IDii payload missing");
 				charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+				charon->bus->alert(charon->bus, ALERT_GENERAL_ERROR);
 				return send_notify(this, INVALID_PAYLOAD_TYPE);
 			}
 			id = id_payload->get_identification(id_payload);
