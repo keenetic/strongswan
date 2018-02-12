@@ -138,8 +138,6 @@ static bool delete_child(private_quick_delete_t *this, protocol_id_t protocol,
 	child_sa->set_state(child_sa, CHILD_DELETED);
 	if (!rekeyed)
 	{
-		charon->bus->child_updown(charon->bus, child_sa, FALSE);
-
 		if (remote_close)
 		{
 			child_cfg = child_sa->get_config(child_sa);
@@ -163,6 +161,7 @@ static bool delete_child(private_quick_delete_t *this, protocol_id_t protocol,
 			child_cfg->destroy(child_cfg);
 		}
 	}
+	charon->bus->child_updown(charon->bus, child_sa, FALSE);
 	this->ike_sa->destroy_child_sa(this->ike_sa, protocol, spi);
 
 	return TRUE;
