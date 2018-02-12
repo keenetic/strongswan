@@ -146,8 +146,6 @@ static status_t delete_child(private_quick_delete_t *this,
 	child_sa->set_state(child_sa, CHILD_DELETED);
 	if (!rekeyed)
 	{
-		charon->bus->child_updown(charon->bus, child_sa, FALSE);
-
 		if (remote_close)
 		{
 			child_init_args_t args = {
@@ -172,8 +170,10 @@ static status_t delete_child(private_quick_delete_t *this,
 			child_cfg->destroy(child_cfg);
 		}
 	}
+
 	if (status == SUCCESS)
 	{
+		charon->bus->child_updown(charon->bus, child_sa, FALSE);
 		this->ike_sa->destroy_child_sa(this->ike_sa, protocol, spi);
 	}
 	return status;
