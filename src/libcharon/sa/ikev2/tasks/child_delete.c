@@ -359,6 +359,7 @@ static status_t destroy_and_reestablish(private_child_delete_t *this)
 			}
 			/* no delay and no lifetime, destroy it immediately */
 		}
+		charon->bus->child_updown(charon->bus, child_sa, FALSE);
 		spi = child_sa->get_spi(child_sa, TRUE);
 		reqid = child_sa->get_reqid(child_sa);
 		child_cfg = child_sa->get_config(child_sa);
