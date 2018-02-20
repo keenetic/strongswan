@@ -340,7 +340,7 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	uint8_t mask;
 	uint32_t if_id;
 	mark_t mark;
-	bool is_host, is_ipv6;
+	bool is_host = FALSE, is_ipv6 = FALSE;
 	int out;
 	FILE *shell;
 	process_t *process;
@@ -348,19 +348,23 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	char *envp[128] = {};
 	ipsec_mode_t sa_mode;
 
-	me = ike_sa->get_my_host(ike_sa);
-	other = ike_sa->get_other_host(ike_sa);
+	me = (ike_sa != NULL ? ike_sa->get_my_host(ike_sa) : NULL);
+	other = (ike_sa != NULL ? ike_sa->get_other_host(ike_sa) : NULL);
 
 	push_env(envp, countof(envp), "PATH=%s", getenv("PATH"));
 	push_env(envp, countof(envp), "PLUTO_VERSION=1.1");
-	is_host = my_ts->is_host(my_ts, me);
-	if (is_host)
+
+	if (ike_sa != NULL)
 	{
-		is_ipv6 = me->get_family(me) == AF_INET6;
-	}
-	else
-	{
-		is_ipv6 = my_ts->get_type(my_ts) == TS_IPV6_ADDR_RANGE;
+		is_host = my_ts->is_host(my_ts, me);
+		if (is_host)
+		{
+			is_ipv6 = me->get_family(me) == AF_INET6;
+		}
+		else
+		{
+			is_ipv6 = my_ts->get_type(my_ts) == TS_IPV6_ADDR_RANGE;
+		}
 	}
 	push_env(envp, countof(envp), "PLUTO_VERB=%s%s%s",
 			 up ? "up" : "down",
@@ -398,13 +402,17 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 			 child_sa->get_protocol(child_sa) == PROTO_ESP ? "esp" : "ah");
 
 	push_env(envp, countof(envp), "PLUTO_UNIQUEID=%u",
-			 ike_sa->get_unique_id(ike_sa));
+			 (ike_sa != NULL ? ike_sa->get_unique_id(ike_sa) : 0));
 
 	push_env(envp, countof(envp), "NDM_SA_UNIQUEID=%u",
 			 child_sa->get_unique_id(child_sa));
 
-	push_env(envp, countof(envp), "PLUTO_ME=%H", me);
-	push_env(envp, countof(envp), "PLUTO_MY_ID=%Y", ike_sa->get_my_id(ike_sa));
+	if (ike_sa != NULL)
+	{
+		push_env(envp, countof(envp), "PLUTO_ME=%H", me);
+		push_env(envp, countof(envp), "PLUTO_MY_ID=%Y", ike_sa->get_my_id(ike_sa));
+	}
+
 	if (!my_ts->to_subnet(my_ts, &host, &mask))
 	{
 		DBG1(DBG_CHD, "updown approximates local TS %R "
@@ -439,9 +447,18 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 
 	push_env(envp, countof(envp), "PLUTO_MY_PROTOCOL=%u",
 			 my_ts->get_protocol(my_ts));
-	push_env(envp, countof(envp), "PLUTO_PEER=%H", other);
-	push_env(envp, countof(envp), "PLUTO_PEER_ID=%Y",
-			 ike_sa->get_other_id(ike_sa));
+
+	if (ike_sa != NULL)
+	{
+		push_env(envp, countof(envp), "PLUTO_PEER=%H", other);
+	}
+
+	if (ike_sa != NULL)
+	{
+		push_env(envp, countof(envp), "PLUTO_PEER_ID=%Y",
+				ike_sa->get_other_id(ike_sa));
+	}
+
 	if (!other_ts->to_subnet(other_ts, &host, &mask))
 	{
 		DBG1(DBG_CHD, "updown approximates remote TS %R "
@@ -458,14 +475,18 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 			 get_port(my_ts, other_ts, port_buf, FALSE));
 	push_env(envp, countof(envp), "PLUTO_PEER_PROTOCOL=%u",
 			 other_ts->get_protocol(other_ts));
-	if (ike_sa->has_condition(ike_sa, COND_EAP_AUTHENTICATED) ||
-		ike_sa->has_condition(ike_sa, COND_XAUTH_AUTHENTICATED))
+
+	if (ike_sa != NULL )
 	{
-		push_env(envp, countof(envp), "PLUTO_XAUTH_ID=%Y",
-				 ike_sa->get_other_eap_id(ike_sa));
+		if (ike_sa->has_condition(ike_sa, COND_EAP_AUTHENTICATED) ||
+			ike_sa->has_condition(ike_sa, COND_XAUTH_AUTHENTICATED))
+		{
+			push_env(envp, countof(envp), "PLUTO_XAUTH_ID=%Y",
+					 ike_sa->get_other_eap_id(ike_sa));
+		}
+		push_vip_env(this, ike_sa, envp, countof(envp), TRUE);
+		push_vip_env(this, ike_sa, envp, countof(envp), FALSE);
 	}
-	push_vip_env(this, ike_sa, envp, countof(envp), TRUE);
-	push_vip_env(this, ike_sa, envp, countof(envp), FALSE);
 	mark = child_sa->get_mark(child_sa, TRUE);
 	if (mark.value)
 	{
@@ -478,6 +499,7 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 		push_env(envp, countof(envp), "PLUTO_MARK_OUT=%u/0x%08x",
 				 mark.value, mark.mask);
 	}
+
 	if_id = child_sa->get_if_id(child_sa, TRUE);
 	if (if_id)
 	{
@@ -488,7 +510,8 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	{
 		push_env(envp, countof(envp), "PLUTO_IF_ID_OUT=%u", if_id);
 	}
-	if (ike_sa->has_condition(ike_sa, COND_NAT_ANY))
+
+	if (ike_sa != NULL && ike_sa->has_condition(ike_sa, COND_NAT_ANY))
 	{
 		push_env(envp, countof(envp), "PLUTO_UDP_ENC=%u",
 				 other->get_port(other));
@@ -497,7 +520,10 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	{
 		push_env(envp, countof(envp), "PLUTO_IPCOMP=1");
 	}
-	push_dns_env(this, ike_sa, envp, countof(envp));
+	if (ike_sa != NULL)
+	{
+		push_dns_env(this, ike_sa, envp, countof(envp));
+	}
 	if (config->has_option(config, OPT_HOSTACCESS))
 	{
 		push_env(envp, countof(envp), "PLUTO_HOST_ACCESS=1");

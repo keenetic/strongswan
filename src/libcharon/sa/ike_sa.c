@@ -1864,6 +1864,7 @@ METHOD(ike_sa_t, destroy_child_sa, status_t,
 		if (child_sa->get_protocol(child_sa) == protocol &&
 			child_sa->get_spi(child_sa, TRUE) == spi)
 		{
+			charon->bus->child_updown(charon->bus, child_sa, FALSE);
 			remove_child_sa(this, enumerator);
 			child_sa->destroy(child_sa);
 			status = SUCCESS;
@@ -3043,6 +3044,7 @@ METHOD(ike_sa_t, destroy, void,
 	 * routes that the CHILD_SA tries to uninstall. */
 	while (array_remove(this->child_sas, ARRAY_TAIL, &child_sa))
 	{
+		charon->bus->child_updown(charon->bus, child_sa, FALSE);
 		charon->child_sa_manager->remove(charon->child_sa_manager, child_sa);
 		child_sa->destroy(child_sa);
 	}
