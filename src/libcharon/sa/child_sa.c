@@ -1670,6 +1670,8 @@ METHOD(child_sa_t, destroy, void,
 	traffic_selector_t *my_ts, *other_ts;
 	policy_priority_t priority;
 
+	charon->bus->child_updown(charon->bus, &this->public, FALSE);
+
 	priority = this->trap ? POLICY_PRIORITY_ROUTED : POLICY_PRIORITY_DEFAULT;
 
 	set_state(this, CHILD_DESTROYING);
