@@ -15,6 +15,7 @@
 
 #include "error_notify_listener.h"
 
+#include <unistd.h>
 #include <utils/process.h>
 #include <daemon.h>
 #include <config/child_cfg.h>
@@ -38,7 +39,7 @@ struct private_error_notify_listener_t {
 };
 
 
-static void invoke_feedback(const char *feedback_script,
+static void invoke_feedback(char *feedback_script,
 	error_notify_msg_t *msg)
 {
 	FILE *shell;
@@ -48,7 +49,7 @@ static void invoke_feedback(const char *feedback_script,
 	char connection[64];
 	char type[32];
 	char action[16];
-	char * const argv[5] = {feedback_script, action, connection, type, NULL};
+	char *argv[5] = {feedback_script, action, connection, type, NULL};
 	int out;
 
 	snprintf(connection, sizeof(connection), "%s", msg->name);

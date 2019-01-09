@@ -15,6 +15,7 @@
 
 #include "stroke_plugin.h"
 
+#include <time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -181,8 +182,8 @@ static void update_connections(void)
 			children = peer_cfg->create_child_cfg_enumerator(peer_cfg);
 			while (children->enumerate(children, &child_cfg))
 			{
-				my_ts = child_cfg->get_traffic_selectors(child_cfg, TRUE, NULL, NULL);
-				other_ts = child_cfg->get_traffic_selectors(child_cfg, FALSE, NULL, NULL);
+				my_ts = child_cfg->get_traffic_selectors(child_cfg, TRUE, NULL, NULL, FALSE);
+				other_ts = child_cfg->get_traffic_selectors(child_cfg, FALSE, NULL, NULL, FALSE);
 				fprintf(fd, "child\n%#R\n%#R\n%N\n", my_ts, other_ts,
 						ipsec_mode_names, child_cfg->get_mode(child_cfg));
 				my_ts->destroy_offset(my_ts, offsetof(traffic_selector_t, destroy));
