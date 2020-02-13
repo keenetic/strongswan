@@ -296,6 +296,8 @@ struct stroke_msg_t {
 				char *mediated_by;
 				char *peerid;
 			} ikeme;
+			uint32_t if_id_in;
+			uint32_t if_id_out;
 			struct {
 				uint32_t value;
 				uint32_t mask;

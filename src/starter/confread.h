@@ -141,6 +141,8 @@ struct starter_conn {
 		unsigned long   sa_keying_tries;
 		unsigned long   sa_rekey_fuzz;
 		uint32_t       reqid;
+		uint32_t       if_id_in;
+		uint32_t       if_id_out;
 		mark_t          mark_in;
 		mark_t          mark_out;
 		uint32_t       replay_window;

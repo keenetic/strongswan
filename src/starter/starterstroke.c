@@ -228,6 +228,8 @@ int starter_stroke_add_conn(starter_config_t *cfg, starter_conn_t *conn)
 	push_string(&msg, add_conn.ikeme.peerid, conn->me_peerid);
 	msg->add_conn.reqid = conn->reqid;
 	msg->add_conn.replay_window = conn->replay_window;
+	msg->add_conn.if_id_in = conn->if_id_in;
+	msg->add_conn.if_id_out = conn->if_id_out;
 	msg->add_conn.mark_in.value = conn->mark_in.value;
 	msg->add_conn.mark_in.mask = conn->mark_in.mask;
 	msg->add_conn.mark_out.value = conn->mark_out.value;
