@@ -25,6 +25,8 @@
 #include <collections/array.h>
 #include <threading/mutex.h>
 
+#define NDM_FEEDBACK "/tmp/ipsec/charon.feedback"
+
 /* path to resolvconf executable */
 #define RESOLVCONF_EXEC "/sbin/resolvconf"
 
@@ -265,6 +267,58 @@ static bool invoke_resolvconf(private_resolve_handler_t *this, host_t *addr,
 	return TRUE;
 }
 
+static void invoke_feedback(char* connection, host_t *addr, bool install)
+{
+	FILE *shell = NULL;
+	process_t *process = NULL;
+	char *envp[128] = { 0 };
+
+	char action[32] = { 0 };
+	char host[128] = { 0 };
+	char *argv[5] = {NDM_FEEDBACK, action, connection, host, NULL};
+	int out;
+
+	snprintf(action, sizeof(action), install ? "dns4-add" : "dns4-remove");
+	snprintf(host, sizeof(host), "%H", addr);
+
+	process = process_start(argv, envp, NULL, &out, NULL, TRUE);
+	if (process)
+	{
+		shell = fdopen(out, "r");
+		if (shell)
+		{
+			while (TRUE)
+			{
+				char resp[128];
+
+				if (fgets(resp, sizeof(resp), shell) == NULL)
+				{
+					if (ferror(shell))
+					{
+						DBG1(DBG_CHD, "error reading from feedback script");
+					}
+					break;
+				}
+				else
+				{
+					char *e = resp + strlen(resp);
+					if (e > resp && e[-1] == '\n')
+					{
+						e[-1] = '\0';
+					}
+					DBG2(DBG_CHD, "feedback: %s", resp);
+				}
+			}
+			fclose(shell);
+		}
+		else
+		{
+			close(out);
+		}
+		process->wait(process, NULL);
+	}
+}
+
 METHOD(attribute_handler_t, handle, bool,
 	private_resolve_handler_t *this, ike_sa_t *ike_sa,
 	configuration_attribute_type_t type, chunk_t data)
@@ -294,6 +348,13 @@ METHOD(attribute_handler_t, handle, bool,
 	this->mutex->lock(this->mutex);
 	if (array_bsearch(this->servers, addr, dns_server_find, &found) == -1)
 	{
+		if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
+		{
+			invoke_feedback(ike_sa->get_name(ike_sa), addr, TRUE);
+			handled = TRUE;
+		}
+
+#if 0
 		if (this->use_resolvconf)
 		{
 			handled = invoke_resolvconf(this, addr, TRUE);
@@ -302,6 +363,8 @@ METHOD(attribute_handler_t, handle, bool,
 		{
 			handled = write_nameserver(this, addr);
 		}
+#endif
+
 		if (handled)
 		{
 			INIT(found,
@@ -361,6 +424,12 @@ METHOD(attribute_handler_t, release, void,
 		}
 		else
 		{
+			if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
+			{
+				invoke_feedback(ike_sa->get_name(ike_sa), addr, FALSE);
+			}
+
+#if 0
 			if (this->use_resolvconf)
 			{
 				invoke_resolvconf(this, addr, FALSE);
@@ -369,6 +438,8 @@ METHOD(attribute_handler_t, release, void,
 			{
 				remove_nameserver(this, addr);
 			}
+#endif
+
 			array_remove(this->servers, idx, NULL);
 			found->server->destroy(found->server);
 			free(found);
