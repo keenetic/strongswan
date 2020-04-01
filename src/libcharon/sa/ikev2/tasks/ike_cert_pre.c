@@ -82,7 +82,7 @@ static void process_certreq(private_ike_cert_pre_t *this,
 									  CERT_X509, KEY_ANY, id, TRUE);
 		if (cert)
 		{
-			DBG1(DBG_IKE, "received cert request for \"%Y\"",
+			DBG3(DBG_IKE, "received cert request for \"%Y\"",
 				 cert->get_subject(cert));
 			auth->add(auth, AUTH_RULE_CA_CERT, cert);
 		}
@@ -368,7 +368,7 @@ static void add_certreq(certreq_payload_t **req, certificate_t *cert)
 			if (public->get_fingerprint(public, KEYID_PUBKEY_INFO_SHA1, &keyid))
 			{
 				(*req)->add_keyid(*req, keyid);
-				DBG1(DBG_IKE, "sending cert request for \"%Y\"",
+				DBG2(DBG_IKE, "sending cert request for \"%Y\"",
 					 cert->get_subject(cert));
 			}
 			public->destroy(public);

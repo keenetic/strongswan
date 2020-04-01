@@ -221,8 +221,8 @@ METHOD(stroke_cred_t, load_peer, certificate_t*,
 	if (cert)
 	{
 		cert = this->creds->add_cert_ref(this->creds, TRUE, cert);
-		DBG1(DBG_CFG, "  loaded certificate \"%Y\" from '%s'",
-					  cert->get_subject(cert), filename);
+		DBG1(DBG_CFG, "  loaded certificate \"%Y\"",
+					  cert->get_subject(cert));
 		return cert;
 	}
 	DBG1(DBG_CFG, "  loading certificate from '%s' failed", filename);
@@ -374,12 +374,12 @@ static certificate_t *load_ca_cert(char *filename, bool force_ca_cert)
 
 		if (!(x509->get_flags(x509) & X509_CA))
 		{
-			DBG1(DBG_CFG, "  ca certificate \"%Y\" lacks ca basic constraint, "
+			DBG2(DBG_CFG, "  ca certificate \"%Y\" lacks ca basic constraint, "
 				 "discarded", cert->get_subject(cert));
 			cert->destroy(cert);
 			return NULL;
 		}
-		DBG1(DBG_CFG, "  loaded ca certificate \"%Y\" from '%s'",
+		DBG2(DBG_CFG, "  loaded ca certificate \"%Y\" from '%s'",
 			 cert->get_subject(cert), filename);
 		return cert;
 	}
@@ -415,7 +415,7 @@ static void load_x509_ca(private_stroke_cred_t *this, char *file,
 	}
 	else
 	{
-		DBG1(DBG_CFG, "  loading ca certificate from '%s' failed", file);
+		DBG2(DBG_CFG, "  loading ca certificate from '%s' failed", file);
 	}
 }
 
@@ -456,8 +456,8 @@ static void load_x509(private_stroke_cred_t *this, char *file, x509_flag_t flag,
 							  BUILD_X509_FLAG, flag, BUILD_END);
 	if (cert)
 	{
-		DBG1(DBG_CFG, "  loaded certificate \"%Y\" from '%s'",
-			 cert->get_subject(cert), file);
+		DBG1(DBG_CFG, "  loaded certificate \"%Y\"",
+			 cert->get_subject(cert));
 		creds->add_cert(creds, TRUE, cert);
 	}
 	else
@@ -979,6 +979,7 @@ static bool load_from_file(chunk_t line, int line_nr, FILE *prompt,
 			return FALSE;
 		}
 	}
+
 	if (secret.len == 7 && strpfx(secret.ptr, "%prompt"))
 	{
 		callback_cred_t *cb;
@@ -1060,7 +1061,7 @@ static bool load_private(mem_cred_t *secrets, chunk_t line, int line_nr,
 	}
 	if (key)
 	{
-		DBG1(DBG_CFG, "  loaded %N private key from '%s'",
+		DBG2(DBG_CFG, "  loaded %N private key from '%s'",
 			 key_type_names, key->get_type(key), path);
 		secrets->add_key(secrets, key);
 	}
@@ -1100,13 +1101,13 @@ static bool load_pkcs12(private_stroke_cred_t *this, mem_cred_t *secrets,
 
 		if (x509->get_flags(x509) & X509_CA)
 		{
-			DBG1(DBG_CFG, "  loaded ca certificate \"%Y\" from '%s'",
-				 cert->get_subject(cert), path);
+			DBG1(DBG_CFG, "  loaded ca certificate \"%Y\"",
+				 cert->get_subject(cert));
 		}
 		else
 		{
-			DBG1(DBG_CFG, "  loaded certificate \"%Y\" from '%s'",
-				 cert->get_subject(cert), path);
+			DBG1(DBG_CFG, "  loaded certificate \"%Y\"",
+				 cert->get_subject(cert));
 		}
 		this->creds->add_cert(this->creds, TRUE, cert->get_ref(cert));
 	}
