@@ -373,12 +373,12 @@ static certificate_t *load_ca_cert(char *filename, bool force_ca_cert)
 
 		if (!(x509->get_flags(x509) & X509_CA))
 		{
-			DBG1(DBG_CFG, "  ca certificate \"%Y\" lacks ca basic constraint, "
+			DBG2(DBG_CFG, "  ca certificate \"%Y\" lacks ca basic constraint, "
 				 "discarded", cert->get_subject(cert));
 			cert->destroy(cert);
 			return NULL;
 		}
-		DBG1(DBG_CFG, "  loaded ca certificate \"%Y\" from '%s'",
+		DBG2(DBG_CFG, "  loaded ca certificate \"%Y\" from '%s'",
 			 cert->get_subject(cert), filename);
 		return cert;
 	}
@@ -414,7 +414,7 @@ static void load_x509_ca(private_stroke_cred_t *this, char *file,
 	}
 	else
 	{
-		DBG1(DBG_CFG, "  loading ca certificate from '%s' failed", file);
+		DBG2(DBG_CFG, "  loading ca certificate from '%s' failed", file);
 	}
 }
 

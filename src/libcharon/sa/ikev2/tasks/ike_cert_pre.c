@@ -372,7 +372,7 @@ static void add_certreq(certreq_payload_t **req, certificate_t *cert)
 			if (public->get_fingerprint(public, KEYID_PUBKEY_INFO_SHA1, &keyid))
 			{
 				(*req)->add_keyid(*req, keyid);
-				DBG1(DBG_IKE, "sending cert request for \"%Y\"",
+				DBG2(DBG_IKE, "sending cert request for \"%Y\"",
 					 cert->get_subject(cert));
 			}
 			public->destroy(public);
