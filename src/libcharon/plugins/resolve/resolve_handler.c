@@ -26,6 +26,8 @@
 #include <collections/array.h>
 #include <threading/mutex.h>
 
+#define NDM_FEEDBACK "/tmp/ipsec/charon.feedback"
+
 /* path to resolvconf executable */
 #define RESOLVCONF_EXEC "/sbin/resolvconf"
 
@@ -87,192 +89,64 @@ typedef struct {
 
 } dns_server_t;
 
-/**
- * Compare a server and a stored reference
- */
-static int dns_server_find(const void *a, const void *b)
+static void invoke_feedback(char* connection, host_t *addr, bool install)
 {
-	host_t *server = (host_t*)a;
-	dns_server_t *item = (dns_server_t*)b;
-	return chunk_compare(server->get_address(server),
-						 item->server->get_address(item->server));
-}
+	FILE *shell = NULL;
+	process_t *process = NULL;
+	char *envp[128] = { 0 };
 
-/**
- * Sort references by DNS server
- */
-static int dns_server_sort(const void *a, const void *b, void *user)
-{
-	const dns_server_t *da = a, *db = b;
-	return chunk_compare(da->server->get_address(da->server),
-						 db->server->get_address(db->server));
-}
+	char action[32] = { 0 };
+	char host[128] = { 0 };
+	char *argv[5] = {NDM_FEEDBACK, action, connection, host, NULL};
+	int out;
 
-/**
- * Writes the given nameserver to resolv.conf
- */
-static bool write_nameserver(private_resolve_handler_t *this, host_t *addr)
-{
-	FILE *in, *out;
-	char buf[1024];
-	size_t len;
-	bool handled = FALSE;
+	snprintf(action, sizeof(action), install ? "dns4-add" : "dns4-remove");
+	snprintf(host, sizeof(host), "%H", addr);
 
-	in = fopen(this->file, "r");
-	/* allows us to stream from in to out */
-	unlink(this->file);
-	out = fopen(this->file, "w");
-	if (out)
+	process = process_start(argv, envp, NULL, &out, NULL, TRUE);
+	if (process)
 	{
-		fprintf(out, "nameserver %H   # by strongSwan\n", addr);
-		DBG1(DBG_IKE, "installing DNS server %H to %s", addr, this->file);
-		handled = TRUE;
-
-		/* copy rest of the file */
-		if (in)
+		shell = fdopen(out, "r");
+		if (shell)
 		{
-			while ((len = fread(buf, 1, sizeof(buf), in)))
+			while (TRUE)
 			{
-				ignore_result(fwrite(buf, 1, len, out));
-			}
-		}
-		fclose(out);
-	}
-	if (in)
-	{
-		fclose(in);
-	}
-	return handled;
-}
+				char resp[128];
 
-/**
- * Removes the given nameserver from resolv.conf
- */
-static void remove_nameserver(private_resolve_handler_t *this, host_t *addr)
-{
-	FILE *in, *out;
-	char line[1024], matcher[512];
-
-	in = fopen(this->file, "r");
-	if (in)
-	{
-		/* allows us to stream from in to out */
-		unlink(this->file);
-		out = fopen(this->file, "w");
-		if (out)
-		{
-			snprintf(matcher, sizeof(matcher),
-					 "nameserver %H   # by strongSwan\n", addr);
-
-			/* copy all, but matching line */
-			while (fgets(line, sizeof(line), in))
-			{
-				if (strpfx(line, matcher))
+				if (fgets(resp, sizeof(resp), shell) == NULL)
 				{
-					DBG1(DBG_IKE, "removing DNS server %H from %s",
-						 addr, this->file);
+					if (ferror(shell))
+					{
+						DBG1(DBG_CHD, "error reading from feedback script");
+					}
+					break;
 				}
 				else
 				{
-					fputs(line, out);
+					char *e = resp + strlen(resp);
+					if (e > resp && e[-1] == '\n')
+					{
+						e[-1] = '\0';
+					}
+					DBG2(DBG_CHD, "feedback: %s", resp);
 				}
 			}
-			fclose(out);
-		}
-		fclose(in);
-	}
-}
-
-/**
- * Add or remove the given nameserver by invoking resolvconf.
- */
-static bool invoke_resolvconf(private_resolve_handler_t *this, host_t *addr,
-							  bool install)
-{
-	process_t *process;
-	FILE *shell;
-	int in, out, retval;
-
-	/* we use the nameserver's IP address as part of the interface name to
-	 * make them unique */
-	process = process_start_shell(NULL, install ? &in : NULL, &out, NULL,
-							"2>&1 %s %s %s%H", RESOLVCONF_EXEC,
-							install ? "-a" : "-d", this->iface_prefix, addr);
-
-	if (!process)
-	{
-		return FALSE;
-	}
-	if (install)
-	{
-		shell = fdopen(in, "w");
-		if (shell)
-		{
-			DBG1(DBG_IKE, "installing DNS server %H via resolvconf", addr);
-			fprintf(shell, "nameserver %H\n", addr);
 			fclose(shell);
 		}
 		else
 		{
-			close(in);
 			close(out);
-			process->wait(process, NULL);
-			return FALSE;
 		}
+		process->wait(process, NULL);
 	}
-	else
-	{
-		DBG1(DBG_IKE, "removing DNS server %H via resolvconf", addr);
-	}
-	shell = fdopen(out, "r");
-	if (shell)
-	{
-		while (TRUE)
-		{
-			char resp[128], *e;
-
-			if (fgets(resp, sizeof(resp), shell) == NULL)
-			{
-				if (ferror(shell))
-				{
-					DBG1(DBG_IKE, "error reading from resolvconf");
-				}
-				break;
-			}
-			else
-			{
-				e = resp + strlen(resp);
-				if (e > resp && e[-1] == '\n')
-				{
-					e[-1] = '\0';
-				}
-				DBG1(DBG_IKE, "resolvconf: %s", resp);
-			}
-		}
-		fclose(shell);
-	}
-	else
-	{
-		close(out);
-	}
-	if (!process->wait(process, &retval) || retval != EXIT_SUCCESS)
-	{
-		if (install)
-		{	/* revert changes when installing fails */
-			invoke_resolvconf(this, addr, FALSE);
-			return FALSE;
-		}
-	}
-	return TRUE;
 }
 
 METHOD(attribute_handler_t, handle, bool,
 	private_resolve_handler_t *this, ike_sa_t *ike_sa,
 	configuration_attribute_type_t type, chunk_t data)
 {
-	dns_server_t *found = NULL;
 	host_t *addr;
-	bool handled;
+	bool handled = FALSE;
 
 	switch (type)
 	{
@@ -293,33 +167,13 @@ METHOD(attribute_handler_t, handle, bool,
 	}
 
 	this->mutex->lock(this->mutex);
-	if (array_bsearch(this->servers, addr, dns_server_find, &found) == -1)
+
+	if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
 	{
-		if (this->use_resolvconf)
-		{
-			handled = invoke_resolvconf(this, addr, TRUE);
-		}
-		else
-		{
-			handled = write_nameserver(this, addr);
-		}
-		if (handled)
-		{
-			INIT(found,
-				.server = addr->clone(addr),
-				.refcount = 1,
-			);
-			array_insert_create(&this->servers, ARRAY_TAIL, found);
-			array_sort(this->servers, dns_server_sort, NULL);
-		}
-	}
-	else
-	{
-		DBG1(DBG_IKE, "DNS server %H already installed, increasing refcount",
-			 addr);
-		found->refcount++;
+		invoke_feedback(ike_sa->get_name(ike_sa), addr, TRUE);
 		handled = TRUE;
 	}
+
 	this->mutex->unlock(this->mutex);
 	addr->destroy(addr);
 
@@ -334,9 +188,8 @@ METHOD(attribute_handler_t, release, void,
 	private_resolve_handler_t *this, ike_sa_t *ike_sa,
 	configuration_attribute_type_t type, chunk_t data)
 {
-	dns_server_t *found = NULL;
 	host_t *addr;
-	int family, idx;
+	int family;
 
 	switch (type)
 	{
@@ -352,29 +205,12 @@ METHOD(attribute_handler_t, release, void,
 	addr = host_create_from_chunk(family, data, 0);
 
 	this->mutex->lock(this->mutex);
-	idx = array_bsearch(this->servers, addr, dns_server_find, &found);
-	if (idx != -1)
+
+	if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
 	{
-		if (--found->refcount > 0)
-		{
-			DBG1(DBG_IKE, "DNS server %H still used, decreasing refcount",
-				 addr);
-		}
-		else
-		{
-			if (this->use_resolvconf)
-			{
-				invoke_resolvconf(this, addr, FALSE);
-			}
-			else
-			{
-				remove_nameserver(this, addr);
-			}
-			array_remove(this->servers, idx, NULL);
-			found->server->destroy(found->server);
-			free(found);
-		}
+		invoke_feedback(ike_sa->get_name(ike_sa), addr, FALSE);
 	}
+
 	this->mutex->unlock(this->mutex);
 
 	addr->destroy(addr);
