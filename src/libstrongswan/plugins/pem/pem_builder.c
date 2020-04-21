@@ -35,7 +35,129 @@
 #include <crypto/crypters/crypter.h>
 #include <credentials/certificates/x509.h>
 
+#include <ndm/core.h>
+#include <ndm/xml.h>
+
 #define PKCS5_SALT_LEN	8	/* bytes */
+
+#define MD5_DGST_SIZE 16
+#define MD5_DGST_TEXT 32
+
+static bool pem_get_password(chunk_t password)
+{
+	struct ndm_core_t* core;
+	struct ndm_core_response_t* resp;
+	const struct ndm_xml_node_t* root;
+	const struct ndm_xml_node_t* node;
+	size_t len;
+	const char* str;
+	u_char buf[MD5_DGST_TEXT + 1];
+	u_char digest[MD5_DGST_SIZE];
+	u_char pad_buf[1];
+	hasher_t *hasher;
+	chunk_t hash;
+	chunk_t data;
+
+	core = ndm_core_open("http/ci", 1000, NDM_CORE_DEFAULT_CACHE_MAX_SIZE);
+
+	if (core == NULL)
+	{
+		DBG1(DBG_ASN, "NDM connection failed");
+		return FALSE;
+	}
+
+	if ((resp = ndm_core_request(core,
+			NDM_CORE_REQUEST_PARSE, NDM_CORE_MODE_CACHE, NULL,
+			"show identification")) == NULL ||
+		!ndm_core_response_is_ok(resp))
+	{
+		DBG1(DBG_ASN, "NDM request failed");
+		ndm_core_response_free(&resp);
+		ndm_core_close(&core);
+		return FALSE;
+	}
+
+	root = ndm_core_response_root(resp);
+
+	if (root == NULL ||
+		ndm_xml_node_type(root) != NDM_XML_NODE_TYPE_ELEMENT ||
+		strcmp(ndm_xml_node_name(root), "response") ||
+		(node = ndm_xml_node_first_child(root, NULL)) == NULL)
+	{
+		DBG1(DBG_ASN, "NDM response is invalid");
+		ndm_core_response_free(&resp);
+		ndm_core_close(&core);
+		return NULL;
+	}
+
+	memset(pad_buf, 0, sizeof(pad_buf));
+	pad_buf[0] = 0x01U;
+
+	hasher = lib->crypto->create_hasher(lib->crypto, HASH_MD5);
+
+	if (hasher == NULL)
+	{
+		DBG1(DBG_ASN, "MD5 hash algorithm not available");
+		ndm_core_response_free(&resp);
+		ndm_core_close(&core);
+		return FALSE;
+	}
+
+	hash.len = hasher->get_hash_size(hasher);
+	hash.ptr = alloca(hash.len);
+
+	do {
+		if (!strcmp(ndm_xml_node_name(node), "servicetag") ||
+			!strcmp(ndm_xml_node_name(node), "serial") ||
+			!strcmp(ndm_xml_node_name(node), "mac") ||
+			!strcmp(ndm_xml_node_name(node), "hwid") ||
+			!strcmp(ndm_xml_node_name(node), "cid"))
+		{
+			str = ndm_xml_node_value(node);
+			len = strlen(str);
+			data = chunk_create((u_char *)str, len);
+
+			if (!hasher->get_hash(hasher, data, NULL))
+			{
+				DBG1(DBG_ASN, "unable to process A");
+				hasher->destroy(hasher);
+				ndm_core_response_free(&resp);
+				ndm_core_close(&core);
+				return FALSE;
+			}
+
+			pad_buf[0] += 0x02U;
+
+			data = chunk_create(pad_buf, 1);
+
+			if (!hasher->get_hash(hasher, data, NULL))
+			{
+				DBG1(DBG_ASN, "unable to process B");
+				hasher->destroy(hasher);
+				ndm_core_response_free(&resp);
+				ndm_core_close(&core);
+				return FALSE;
+			}
+		}
+		node = ndm_xml_node_next_sibling(node, NULL);
+	} while (node != NULL);
+
+	ndm_core_response_free(&resp);
+	ndm_core_close(&core);
+
+	if (!hasher->get_hash(hasher, chunk_empty, digest))
+	{
+		DBG1(DBG_ASN, "unable to process C");
+		hasher->destroy(hasher);
+		return FALSE;
+	}
+
+	hasher->destroy(hasher);
+
+	chunk_to_hex(chunk_create(digest, MD5_DGST_SIZE), password.ptr, false);
+
+	return TRUE;
+}
 
 /**
  * check the presence of a pattern in a character string, skip if found
@@ -335,6 +457,7 @@ static status_t pem_to_bin(chunk_t *blob, bool *pgp)
 		DBG1(DBG_LIB, "  file coded in unknown format, discarded");
 		return PARSE_ERROR;
 	}
+
 	if (!encrypted)
 	{
 		return SUCCESS;
@@ -345,8 +468,15 @@ static status_t pem_to_bin(chunk_t *blob, bool *pgp)
 	while (enumerator->enumerate(enumerator, &shared, NULL, NULL))
 	{
 		chunk_t passphrase, chunk;
+		uint8_t passp[MD5_DGST_TEXT + 1];
 
-		passphrase = shared->get_key(shared);
+		passphrase = chunk_create(passp, MD5_DGST_TEXT);
+
+		if (!pem_get_password(passphrase))
+		{
+			passphrase = shared->get_key(shared);
+		}
+
 		chunk = chunk_clone(*blob);
 		status = pem_decrypt(&chunk, alg, key_size, iv, passphrase);
 		if (status == SUCCESS)

@@ -15,4 +15,4 @@ libstrongswan_pem_la_SOURCES = \
 	pem_builder.c pem_builder.h \
 	pem_encoder.c pem_encoder.h
 
-libstrongswan_pem_la_LDFLAGS = -module -avoid-version
+libstrongswan_pem_la_LDFLAGS = -module -avoid-version -lndm
