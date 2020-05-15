@@ -178,6 +178,7 @@ static const token_info_t token_info[] =
 	{ ARG_UINT, offsetof(starter_conn_t, replay_window), NULL                      },
 	{ ARG_UINT, offsetof(starter_conn_t, if_id_in), NULL                           },
 	{ ARG_UINT, offsetof(starter_conn_t, if_id_out), NULL                          },
+	{ ARG_ENUM, offsetof(starter_conn_t, unique), LST_unique                       },
 	{ ARG_MISC, 0, NULL  /* KW_MARK */                                             },
 	{ ARG_MISC, 0, NULL  /* KW_MARK_IN */                                          },
 	{ ARG_MISC, 0, NULL  /* KW_MARK_OUT */                                         },

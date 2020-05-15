@@ -83,6 +83,15 @@ typedef enum {
 		SA_OPTION_FORCE_ENCAP   = 1 << 7, /* force UDP encapsulation */
 } sa_option_t;
 
+typedef enum  {
+	/* same as in peer_cfg.h */
+	UNI_NO = 0,
+	UNI_YES = 1,
+	UNI_REPLACE = 2,
+	UNI_KEEP = 3,
+	UNI_NEVER = 4,
+} uni_policy_t;
+
 typedef struct starter_end starter_end_t;
 
 struct starter_end {
@@ -143,6 +152,7 @@ struct starter_conn {
 		uint32_t       reqid;
 		uint32_t       if_id_in;
 		uint32_t       if_id_out;
+		uni_policy_t   unique;
 		mark_t          mark_in;
 		mark_t          mark_out;
 		uint32_t       replay_window;
