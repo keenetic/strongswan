@@ -72,6 +72,9 @@ mediated_by,       KW_MEDIATED_BY
 me_peerid,         KW_ME_PEERID
 reqid,             KW_REQID
 replay_window,     KW_REPLAY_WINDOW
+if_id_in,          KW_IF_ID_IN
+if_id_out,         KW_IF_ID_OUT
+unique,            KW_UNIQUE
 mark,              KW_MARK
 mark_in,           KW_MARK_IN
 mark_out,          KW_MARK_OUT

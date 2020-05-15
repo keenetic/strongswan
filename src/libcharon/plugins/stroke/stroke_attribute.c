@@ -16,10 +16,18 @@
  */
 
 #include "stroke_attribute.h"
-
 #include <daemon.h>
 #include <collections/linked_list.h>
 #include <threading/rwlock.h>
+
+/* vasprintf() */
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <unistd.h>
+#include <utils/utils.h>
+
+#include <ndm/core.h>
+#include <ndm/xml.h>
 
 typedef struct private_stroke_attribute_t private_stroke_attribute_t;
 
@@ -90,59 +98,159 @@ static mem_pool_t *find_pool(private_stroke_attribute_t *this, char *name)
 	return found;
 }
 
-/**
- * Find an existing or not yet existing lease
- */
-static host_t *find_addr(private_stroke_attribute_t *this, linked_list_t *pools,
-						 identification_t *id, host_t *requested,
-						 mem_pool_op_t operation, host_t *peer)
+static host_t *get_address_ndm(const char *map, const char *id,
+							   const chunk_t *remote, const char *remote_id)
 {
-	host_t *addr = NULL;
-	enumerator_t *enumerator;
-	mem_pool_t *pool;
-	char *name;
+	struct ndm_core_t *core;
+	struct ndm_core_response_t *resp;
+	const struct ndm_xml_node_t *root;
+	const struct ndm_xml_node_t *node;
+	host_t *result = NULL;
+	char remote_addr[INET_ADDRSTRLEN + 1];
+	const char *request_args[] = {
+		"name", map,
+		"user", id,
+		"remote-peer", remote_addr,
+		"remote-peer-id", remote_id,
+		NULL
+	};
 
-	enumerator = pools->create_enumerator(pools);
-	while (enumerator->enumerate(enumerator, &name))
+	memset(remote_addr, 0, sizeof(remote_addr));
+
+	if (inet_ntop(AF_INET, remote->ptr,
+			remote_addr, sizeof(remote_addr)) == NULL)
 	{
-		pool = find_pool(this, name);
-		if (pool)
-		{
-			addr = pool->acquire_address(pool, id, requested, operation, peer);
-			if (addr)
-			{
-				break;
-			}
-		}
+		DBG1(DBG_CFG, "unable to convert IPv4 address to string");
+		return NULL;
 	}
-	enumerator->destroy(enumerator);
 
-	return addr;
+	core = ndm_core_open(
+		"strongswan-stroke/ci", 1000, NDM_CORE_DEFAULT_CACHE_MAX_SIZE);
+
+	if (core == NULL)
+	{
+		DBG1(DBG_CFG, "NDM connection failed");
+		return NULL;
+	}
+
+	if ((resp = ndm_core_request(core,
+			NDM_CORE_REQUEST_EXECUTE, NDM_CORE_MODE_NO_CACHE, request_args,
+			"crypto map virtual-ip alloc-address")) == NULL)
+	{
+		DBG1(DBG_CFG, "NDM request failed");
+		ndm_core_response_free(&resp);
+		ndm_core_close(&core);
+		return NULL;
+	}
+
+	if (!ndm_core_response_is_ok(resp))
+	{
+		if (!ndm_core_last_message_received(core))
+		{
+			DBG1(DBG_CFG, "NDM give no answer");
+		} else
+		{
+			DBG1(DBG_CFG, "unable to obtain lease");
+		}
+
+		ndm_core_response_free(&resp);
+		ndm_core_close(&core);
+
+		return NULL;
+	}
+
+	root = ndm_core_response_root(resp);
+
+	if (root == NULL ||
+		ndm_xml_node_type(root) != NDM_XML_NODE_TYPE_ELEMENT ||
+		strcmp(ndm_xml_node_name(root), "response") ||
+		(node = ndm_xml_node_first_child(root, NULL)) == NULL)
+	{
+		DBG1(DBG_CFG, "NDM response is invalid");
+		ndm_core_response_free(&resp);
+		ndm_core_close(&core);
+		return NULL;
+	}
+
+	if (!strcmp(ndm_xml_node_name(node), "allocated-address"))
+	{
+		result = host_create_from_string_and_family(
+			(char*)ndm_xml_node_value(node), AF_INET, 0);
+	} else
+	{
+		DBG1(DBG_CFG, "no free address found");
+		ndm_core_response_free(&resp);
+		ndm_core_close(&core);
+		return NULL;
+	}
+
+	ndm_core_response_free(&resp);
+	ndm_core_close(&core);
+
+	return result;
+}
+
+static char *get_id_str(char *fmt, ...)
+{
+	char *str;
+	va_list args;
+
+	va_start(args, fmt);
+	if (vasprintf(&str, fmt, args) == -1)
+	{
+		str = NULL;
+	}
+	va_end(args);
+
+	return str;
 }
 
 METHOD(attribute_provider_t, acquire_address, host_t*,
 	private_stroke_attribute_t *this, linked_list_t *pools, ike_sa_t *ike_sa,
 	host_t *requested)
 {
-	identification_t *id;
+	identification_t *id, *remote_id;
 	host_t *addr, *peer;
+	chunk_t remote_peer;
+	char *name;
+	char *id_str, *remote_id_str;
 
+	if (requested->get_family(requested) != AF_INET)
+	{
+		return NULL;
+	}
+
+	name = ike_sa->get_name(ike_sa);
 	id = ike_sa->get_other_eap_id(ike_sa);
+	remote_id = ike_sa->get_other_id(ike_sa);
 	peer = ike_sa->get_other_host(ike_sa);
+	remote_peer = peer->get_address(peer);
+
+	id_str = get_id_str("%Y", id);
+
+	if (id_str == NULL)
+	{
+		DBG1(DBG_CFG, "unable to print ID");
+		return NULL;
+	}
+
+	remote_id_str = get_id_str("%Y", remote_id);
+
+	if (remote_id_str == NULL)
+	{
+		DBG1(DBG_CFG, "unable to print remote ID");
+		free(id_str);
+		return NULL;
+	}
 
 	this->lock->read_lock(this->lock);
 
-	addr = find_addr(this, pools, id, requested, MEM_POOL_EXISTING, peer);
-	if (!addr)
-	{
-		addr = find_addr(this, pools, id, requested, MEM_POOL_NEW, peer);
-		if (!addr)
-		{
-			addr = find_addr(this, pools, id, requested, MEM_POOL_REASSIGN, peer);
-		}
-	}
+	addr = get_address_ndm(name, id_str, &remote_peer, remote_id_str);
 
 	this->lock->unlock(this->lock);
+
+	free(id_str);
+	free(remote_id_str);
 
 	return addr;
 }
@@ -151,32 +259,7 @@ METHOD(attribute_provider_t, release_address, bool,
 	private_stroke_attribute_t *this, linked_list_t *pools, host_t *address,
 	ike_sa_t *ike_sa)
 {
-	enumerator_t *enumerator;
-	identification_t *id;
-	mem_pool_t *pool;
-	bool found = FALSE;
-	char *name;
-
-	id = ike_sa->get_other_eap_id(ike_sa);
-
-	enumerator = pools->create_enumerator(pools);
-	this->lock->read_lock(this->lock);
-	while (enumerator->enumerate(enumerator, &name))
-	{
-		pool = find_pool(this, name);
-		if (pool)
-		{
-			found = pool->release_address(pool, address, id);
-			if (found)
-			{
-				break;
-			}
-		}
-	}
-	this->lock->unlock(this->lock);
-	enumerator->destroy(enumerator);
-
-	return found;
+	return TRUE;
 }
 
 CALLBACK(attr_filter, bool,
