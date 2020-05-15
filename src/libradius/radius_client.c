@@ -95,13 +95,13 @@ METHOD(radius_client_t, request, radius_message_t*,
 		req->add(req, RAT_STATE, this->state);
 	}
 	socket = this->config->get_socket(this->config);
-	DBG1(DBG_CFG, "sending RADIUS %N to server '%s'", radius_message_code_names,
+	DBG2(DBG_CFG, "sending RADIUS %N to server '%s'", radius_message_code_names,
 		 req->get_code(req), this->config->get_name(this->config));
 
 	res = socket->request(socket, req);
 	if (res)
 	{
-		DBG1(DBG_CFG, "received RADIUS %N from server '%s'",
+		DBG2(DBG_CFG, "received RADIUS %N from server '%s'",
 			 radius_message_code_names, res->get_code(res),
 			 this->config->get_name(this->config));
 		data = res->get_encoding(res);
