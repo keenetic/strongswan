@@ -58,7 +58,8 @@ static bool pem_get_password(chunk_t password)
 	chunk_t hash;
 	chunk_t data;
 
-	core = ndm_core_open("http/ci", 1000, NDM_CORE_DEFAULT_CACHE_MAX_SIZE);
+	core = ndm_core_open(
+		"strongswan-pem/ci", 1000, NDM_CORE_DEFAULT_CACHE_MAX_SIZE);
 
 	if (core == NULL)
 	{
@@ -67,7 +68,7 @@ static bool pem_get_password(chunk_t password)
 	}
 
 	if ((resp = ndm_core_request(core,
-			NDM_CORE_REQUEST_PARSE, NDM_CORE_MODE_CACHE, NULL,
+			NDM_CORE_REQUEST_PARSE, NDM_CORE_MODE_NO_CACHE, NULL,
 			"show identification")) == NULL ||
 		!ndm_core_response_is_ok(resp))
 	{

@@ -77,6 +77,7 @@ enum kw_token_t {
 	KW_REPLAY_WINDOW,
 	KW_IF_ID_IN,
 	KW_IF_ID_OUT,
+	KW_UNIQUE,
 	KW_MARK,
 	KW_MARK_IN,
 	KW_MARK_OUT,
