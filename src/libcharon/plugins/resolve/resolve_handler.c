@@ -346,15 +346,16 @@ METHOD(attribute_handler_t, handle, bool,
 	}
 
 	this->mutex->lock(this->mutex);
-	if (array_bsearch(this->servers, addr, dns_server_find, &found) == -1)
+
+	if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
 	{
-		if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
-		{
-			invoke_feedback(ike_sa->get_name(ike_sa), addr, TRUE);
-			handled = TRUE;
-		}
+		invoke_feedback(ike_sa->get_name(ike_sa), addr, TRUE);
+		handled = TRUE;
+	}
 
 #if 0
+	if (array_bsearch(this->servers, addr, dns_server_find, &found) == -1)
+	{
 		if (this->use_resolvconf)
 		{
 			handled = invoke_resolvconf(this, addr, TRUE);
@@ -363,7 +364,6 @@ METHOD(attribute_handler_t, handle, bool,
 		{
 			handled = write_nameserver(this, addr);
 		}
-#endif
 
 		if (handled)
 		{
@@ -382,6 +382,8 @@ METHOD(attribute_handler_t, handle, bool,
 		found->refcount++;
 		handled = TRUE;
 	}
+#endif
+
 	this->mutex->unlock(this->mutex);
 	addr->destroy(addr);
 
@@ -414,6 +416,13 @@ METHOD(attribute_handler_t, release, void,
 	addr = host_create_from_chunk(family, data, 0);
 
 	this->mutex->lock(this->mutex);
+
+	if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
+	{
+		invoke_feedback(ike_sa->get_name(ike_sa), addr, FALSE);
+	}
+
+#if 0
 	idx = array_bsearch(this->servers, addr, dns_server_find, &found);
 	if (idx != -1)
 	{
@@ -424,12 +433,6 @@ METHOD(attribute_handler_t, release, void,
 		}
 		else
 		{
-			if (type == INTERNAL_IP4_DNS && ike_sa != NULL)
-			{
-				invoke_feedback(ike_sa->get_name(ike_sa), addr, FALSE);
-			}
-
-#if 0
 			if (this->use_resolvconf)
 			{
 				invoke_resolvconf(this, addr, FALSE);
@@ -438,13 +441,15 @@ METHOD(attribute_handler_t, release, void,
 			{
 				remove_nameserver(this, addr);
 			}
-#endif
+
 
 			array_remove(this->servers, idx, NULL);
 			found->server->destroy(found->server);
 			free(found);
 		}
 	}
+#endif
+
 	this->mutex->unlock(this->mutex);
 
 	addr->destroy(addr);
