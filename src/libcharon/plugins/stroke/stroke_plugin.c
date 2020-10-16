@@ -156,7 +156,9 @@ static void update_connections(void)
 			ike_version = peer_cfg->get_ike_version(peer_cfg);
 			my_addr = ike_cfg->get_my_addr(ike_cfg);
 			other_addr = ike_cfg->get_other_addr(ike_cfg);
-			fprintf(fd, "%d\n%d\n%s\n%s\n%u\n", time(NULL), time_monotonic(NULL),
+			fprintf(fd, "%lld\n%lld\n%s\n%s\n%u\n",
+				(long long)time(NULL),
+				(long long)time_monotonic(NULL),
 				my_addr, other_addr, ike_version);
 
 			if (ike_version == IKEV1 && peer_cfg->use_aggressive(peer_cfg))
@@ -422,7 +424,9 @@ static void update_sa(void)
 
 		if (fd != NULL)
 		{
-			fprintf(fd, "%d\n%d\n", time(NULL), time_monotonic(NULL));
+			fprintf(fd, "%lld\n%lld\n",
+				(long long)time(NULL),
+				(long long)time_monotonic(NULL));
 
 			fprintf(fd, "ikesa\n");
 			update_ike_sa(fd, ike_sa);
