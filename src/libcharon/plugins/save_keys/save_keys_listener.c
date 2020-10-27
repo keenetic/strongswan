@@ -46,23 +46,15 @@
 
 #include <daemon.h>
 
+#include <ndm/feedback.h>
+
+#define NESEP_						NDM_FEEDBACK_ENV_SEPARATOR
+#define IKE_FB						"/tmp/ipsec/charon.ike.debug"
+#define SA_FB						"/tmp/ipsec/charon.sa.debug"
+#define BUFFER_SIZE					1024
+
 typedef struct private_save_keys_listener_t private_save_keys_listener_t;
 typedef struct algo_map_t algo_map_t;
-
-/**
- * Name for IKEv1 decryption table file
- */
-static char *ikev1_name = "ikev1_decryption_table";
-
-/**
- * Name for IKEv2 decryption table file
- */
-static char *ikev2_name = "ikev2_decryption_table";
-
-/**
- * Name for esp decryption table file
- */
-static char *esp_name = "esp_sa";
 
 /**
  * Private data.
@@ -284,50 +276,50 @@ METHOD(listener_t, ike_derived_keys, bool,
 	ike_version_t version;
 	ike_sa_id_t *id;
 	const char *enc = NULL, *integ = NULL;
-	char *path, *name;
-	FILE *file;
-
-	if (!this->path || !this->ike)
-	{
-		return TRUE;
-	}
+	char buf[BUFFER_SIZE] = {0};
+	char bufb64[BUFFER_SIZE] = {0};
 
 	version = ike_sa->get_version(ike_sa);
-	name = version == IKEV2 ? ikev2_name : ikev1_name;
-	if (asprintf(&path, "%s/%s", this->path, name) < 0)
+	id = ike_sa->get_id(ike_sa);
+	if (version == IKEV2)
 	{
-		DBG1(DBG_IKE, "failed to build path to IKE key table");
-		return TRUE;
-	}
-
-	file = fopen(path, "a");
-	if (file)
-	{
-		id = ike_sa->get_id(ike_sa);
-		if (version == IKEV2)
+		ike_names(ike_sa->get_proposal(ike_sa), &enc, &integ);
+		if (enc && integ)
 		{
-			ike_names(ike_sa->get_proposal(ike_sa), &enc, &integ);
-			if (enc && integ)
-			{
-				fprintf(file, "%.16"PRIx64",%.16"PRIx64",%+B,%+B,\"%s\","
-						"%+B,%+B,\"%s\"\n", be64toh(id->get_initiator_spi(id)),
-						be64toh(id->get_responder_spi(id)), &sk_ei, &sk_er,
-						enc, &sk_ai, &sk_ar, integ);
-			}
+			snprintf(buf, sizeof(buf), "%.16"PRIx64",%.16"PRIx64",%+B,%+B,\"%s\","
+					"%+B,%+B,\"%s\"\n", be64toh(id->get_initiator_spi(id)),
+					be64toh(id->get_responder_spi(id)), &sk_ei, &sk_er,
+					enc, &sk_ai, &sk_ar, integ);
 		}
-		else
-		{
-			fprintf(file, "%.16"PRIx64",%+B\n",
-					be64toh(id->get_initiator_spi(id)), &sk_ei);
-		}
-		fclose(file);
 	}
 	else
 	{
-		DBG1(DBG_IKE, "failed to open IKE key table '%s': %s", path,
-			 strerror(errno));
+		snprintf(buf, sizeof(buf), "%.16"PRIx64",%+B\n",
+				be64toh(id->get_initiator_spi(id)), &sk_ei);
 	}
-	free(path);
+
+	chunk_to_base64(chunk_from_str(buf), bufb64);
+
+	{
+		const char *args[] =
+		{
+			IKE_FB,
+			NULL
+		};
+
+		if (!ndm_feedback(NDM_FEEDBACK_TIMEOUT_MSEC,
+				args,
+				"%s=%s" NESEP_,
+				"value", bufb64))
+		{
+			const int err = errno;
+
+			DBG0(DBG_CHD,
+				"unable to communicate with ndm: \"%s\"",
+				strerror(err));
+		}
+	}
+
 	return TRUE;
 }
 
@@ -339,56 +331,67 @@ METHOD(listener_t, child_derived_keys, bool,
 	host_t *init, *resp;
 	uint32_t spi_i, spi_r;
 	const char *enc = NULL, *integ = NULL;
-	char *path, *family;
-	FILE *file;
+	char *family;
+	char buf1[BUFFER_SIZE] = {0};
+	char buf1b64[BUFFER_SIZE] = {0};
+	char buf2[BUFFER_SIZE] = {0};
+	char buf2b64[BUFFER_SIZE] = {0};
 
-	if (!this->path || !this->esp ||
-		child_sa->get_protocol(child_sa) != PROTO_ESP)
+	if (child_sa->get_protocol(child_sa) != PROTO_ESP)
 	{
 		return TRUE;
 	}
 
-	if (asprintf(&path, "%s/%s", this->path, esp_name) < 0)
+	esp_names(child_sa->get_proposal(child_sa), &enc, &integ);
+	if (enc && integ)
 	{
-		DBG1(DBG_CHD, "failed to build path to ESP key table");
-		return TRUE;
-	}
-
-	file = fopen(path, "a");
-	if (file)
-	{
-		esp_names(child_sa->get_proposal(child_sa), &enc, &integ);
-		if (enc && integ)
+		/* Since the IPs are printed this is not compatible with MOBIKE */
+		if (initiator)
 		{
-			/* Since the IPs are printed this is not compatible with MOBIKE */
-			if (initiator)
-			{
-				init = ike_sa->get_my_host(ike_sa);
-				resp = ike_sa->get_other_host(ike_sa);
-			}
-			else
-			{
-				init = ike_sa->get_other_host(ike_sa);
-				resp = ike_sa->get_my_host(ike_sa);
-			}
-			spi_i = child_sa->get_spi(child_sa, initiator);
-			spi_r = child_sa->get_spi(child_sa, !initiator);
-			family = init->get_family(init) == AF_INET ? "IPv4" : "IPv6";
-			fprintf(file, "\"%s\",\"%H\",\"%H\",\"0x%.8x\",\"%s\",\"0x%+B\","
-					"\"%s\",\"0x%+B\"\n", family, init, resp, ntohl(spi_r), enc,
-					&encr_i, integ, &integ_i);
-			fprintf(file, "\"%s\",\"%H\",\"%H\",\"0x%.8x\",\"%s\",\"0x%+B\","
-					"\"%s\",\"0x%+B\"\n", family, resp, init, ntohl(spi_i), enc,
-					&encr_r, integ, &integ_r);
+			init = ike_sa->get_my_host(ike_sa);
+			resp = ike_sa->get_other_host(ike_sa);
 		}
-		fclose(file);
+		else
+		{
+			init = ike_sa->get_other_host(ike_sa);
+			resp = ike_sa->get_my_host(ike_sa);
+		}
+		spi_i = child_sa->get_spi(child_sa, initiator);
+		spi_r = child_sa->get_spi(child_sa, !initiator);
+		family = init->get_family(init) == AF_INET ? "IPv4" : "IPv6";
+		snprintf(buf1, sizeof(buf1), "\"%s\",\"%H\",\"%H\",\"0x%.8x\",\"%s\",\"0x%+B\","
+				"\"%s\",\"0x%+B\"\n", family, init, resp, ntohl(spi_r), enc,
+				&encr_i, integ, &integ_i);
+		snprintf(buf2, sizeof(buf2), "\"%s\",\"%H\",\"%H\",\"0x%.8x\",\"%s\",\"0x%+B\","
+				"\"%s\",\"0x%+B\"\n", family, resp, init, ntohl(spi_i), enc,
+				&encr_r, integ, &integ_r);
 	}
-	else
+
+	chunk_to_base64(chunk_from_str(buf1), buf1b64);
+	chunk_to_base64(chunk_from_str(buf2), buf2b64);
+
 	{
-		DBG1(DBG_CHD, "failed to open ESP key table '%s': %s", path,
-			 strerror(errno));
+		const char *args[] =
+		{
+			SA_FB,
+			NULL
+		};
+
+		if (!ndm_feedback(NDM_FEEDBACK_TIMEOUT_MSEC,
+				args,
+				"%s=%s" NESEP_
+				"%s=%s" NESEP_,
+				"value1", buf1b64,
+				"value2", buf2b64))
+		{
+			const int err = errno;
+
+			DBG1(DBG_CHD,
+				"unable to communicate with ndm: \"%s\"",
+				strerror(err));
+		}
 	}
-	free(path);
+
 	return TRUE;
 }
 
@@ -418,21 +421,5 @@ save_keys_listener_t *save_keys_listener_create()
 									   FALSE, lib->ns),
 	);
 
-	if (this->path && (this->ike || this->esp))
-	{
-		char *keys = "IKE";
-
-		if (this->ike && this->esp)
-		{
-			keys = "IKE AND ESP";
-		}
-		else if (this->esp)
-		{
-			keys = "ESP";
-		}
-		DBG0(DBG_DMN, "!!", keys, this->path);
-		DBG0(DBG_DMN, "!! WARNING: SAVING %s KEYS TO '%s'", keys, this->path);
-		DBG0(DBG_DMN, "!!", keys, this->path);
-	}
 	return &this->public;
 }
