@@ -15,4 +15,4 @@ libstrongswan_save_keys_la_SOURCES = \
 	save_keys_plugin.h save_keys_plugin.c \
 	save_keys_listener.c save_keys_listener.h
 
-libstrongswan_save_keys_la_LDFLAGS = -module -avoid-version
+libstrongswan_save_keys_la_LDFLAGS = -module -avoid-version -lndm
