@@ -320,7 +320,7 @@ METHOD(listener_t, ike_derived_keys, bool,
 
 		if (!ndm_feedback(NDM_FEEDBACK_TIMEOUT_MSEC,
 				args,
-				"%s=%s",
+				"%s=%s" NESEP_,
 				"value", bufb64))
 		{
 			const int err = errno;
@@ -391,7 +391,7 @@ METHOD(listener_t, child_derived_keys, bool,
 		if (!ndm_feedback(NDM_FEEDBACK_TIMEOUT_MSEC,
 				args,
 				"%s=%s" NESEP_
-				"%s=%s",
+				"%s=%s" NESEP_,
 				"value1", buf1b64,
 				"value2", buf2b64))
 		{
