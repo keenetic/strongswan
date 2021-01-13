@@ -788,7 +788,7 @@ static status_t send_certificate_request(private_tls_server_t *this,
 		if (x509->get_flags(x509) & X509_CA)
 		{
 			id = cert->get_subject(cert);
-			DBG1(DBG_TLS, "sending TLS cert request for '%Y'", id);
+			DBG2(DBG_TLS, "sending TLS cert request for '%Y'", id);
 			authorities->write_data16(authorities, id->get_encoding(id));
 		}
 	}

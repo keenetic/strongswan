@@ -602,7 +602,7 @@ static status_t process_certreq(private_tls_peer_t *this, bio_reader_t *reader)
 										  CERT_X509, KEY_ANY, id, TRUE);
 			if (cert)
 			{
-				DBG1(DBG_TLS, "received TLS cert request for '%Y", id);
+				DBG2(DBG_TLS, "received TLS cert request for '%Y", id);
 				this->peer_auth->add(this->peer_auth, AUTH_RULE_CA_CERT, cert);
 			}
 			else
