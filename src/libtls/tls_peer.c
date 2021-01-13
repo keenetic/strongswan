@@ -872,7 +872,7 @@ static bool read_certificate_authorities(private_tls_peer_t *this,
 										  CERT_X509, KEY_ANY, id, TRUE);
 			if (cert)
 			{
-				DBG1(DBG_TLS, "received TLS cert request for '%Y", id);
+				DBG2(DBG_TLS, "received TLS cert request for '%Y", id);
 				this->peer_auth->add(this->peer_auth, AUTH_RULE_CA_CERT, cert);
 			}
 			else
