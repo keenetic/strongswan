@@ -184,8 +184,8 @@ static job_requeue_t check_systime(private_systime_fix_plugin_t *this)
 
 	if ((time(NULL) - this->prev_time) > (this->interval * 4))
 	{
-		DBG1(DBG_CFG, "system time jump detected from %ds to %ds, initiate SA rekeying",
-			this->prev_time, time(NULL));
+		DBG1(DBG_CFG, "system time jump detected from %llds to %llds, initiate SA rekeying",
+			(long long)this->prev_time, (long long)time(NULL));
 		initiate_rekey();
 	}
 	this->prev_time = time(NULL);
