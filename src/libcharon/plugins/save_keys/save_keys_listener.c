@@ -291,6 +291,7 @@ METHOD(listener_t, ike_derived_keys, bool,
 	char buf[BUFFER_SIZE] = {0};
 	char bufb64[BUFFER_SIZE] = {0};
 
+	version = ike_sa->get_version(ike_sa);
 	id = ike_sa->get_id(ike_sa);
 	if (version == IKEV2)
 	{
