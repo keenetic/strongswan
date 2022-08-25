@@ -408,6 +408,8 @@ static void print_sourceline(FILE *file, char *filename, void *ptr, void *base)
 void backtrace_init() {}
 void backtrace_deinit() {}
 
+#if defined(HAVE_BACKTRACE) || defined(HAVE_LIBUNWIND_H) || defined(WIN32)
+#if defined(HAVE_DLADDR) || defined(HAVE_BFD_H)
 /**
  * Print the source file with line number to file, slow addr2line variant
  */
@@ -443,6 +445,8 @@ static void print_sourceline(FILE *file, char *filename, void *ptr, void* base)
 				esc(file, TTY_FG_DEF));
 	}
 }
+#endif
+#endif
 
 #endif /* HAVE_BFD_H */
 
