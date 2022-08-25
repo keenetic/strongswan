@@ -17,7 +17,7 @@
 #include "error_notify_listener.h"
 
 #include <utils/process.h>
-#include <hydra.h>
+#include <unistd.h>
 #include <daemon.h>
 #include <config/child_cfg.h>
 
@@ -40,7 +40,7 @@ struct private_error_notify_listener_t {
 };
 
 
-static void invoke_feedback(const char *feedback_script,
+static void invoke_feedback(char *feedback_script,
 	error_notify_msg_t *msg)
 {
 	FILE *shell;
@@ -50,7 +50,7 @@ static void invoke_feedback(const char *feedback_script,
 	char connection[64];
 	char type[32];
 	char action[16];
-	char * const argv[5] = {feedback_script, action, connection, type, NULL};
+	char * argv[5] = {feedback_script, action, connection, type, NULL};
 	int out;
 
 	snprintf(connection, sizeof(connection), "%s", msg->name);
@@ -300,10 +300,6 @@ METHOD(listener_t, alert, bool,
 			snprintf(msg.str, sizeof(msg.str), "certificate rejected because of "
 					 "policy violation: '%Y'", cert->get_issuer(cert));
 			break;
-		case ALERT_PROPOSAL_MISMATCH_IKEV1:
-			msg.type = htonl(ERROR_NOTIFY_PROPOSAL_MISMATCH_IKEV1);
-			snprintf(msg.str, sizeof(msg.str), "IKEv1 no proposal chosen");
-			break;
 		case ALERT_CHILDSA_ESTABLISHED:
 			msg.type = htonl(ERROR_NOTIFY_CHILDSA_ESTABLISHED);
 			snprintf(msg.str, sizeof(msg.str), "child SA established");
@@ -365,11 +361,6 @@ METHOD(listener_t, alert, bool,
 		case ALERT_INVALID_KEY:
 			msg.type = htonl(ERROR_NOTIFY_INVALID_KEY);
 			snprintf(msg.str, sizeof(msg.str), "Invalid key");
-			break;
-
-		case ALERT_PEER_ADDR_FAILED:
-			msg.type = htonl(ERROR_NOTIFY_PEER_ADDRESS_FAILED);
-			snprintf(msg.str, sizeof(msg.str), "Error in address resolving");
 			break;
 
 		case ALERT_GENERAL_ERROR:
