@@ -150,7 +150,7 @@ library.lo :	$(top_builddir)/config.status
 
 libstrongswan_la_LIBADD = \
 	$(DLLIB) $(ATOMICLIB)  $(BTLIB) $(SOCKLIB) \
-	$(RTLIB) $(BFDLIB) $(UNWINDLIB) \
+	$(RTLIB) $(BFDLIB) $(UNWINDLIB) $(FATALSIGLIB) \
 	$(selinux_LIBS)
 
 AM_CPPFLAGS = \
