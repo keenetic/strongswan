@@ -21,6 +21,10 @@
 #include <execinfo.h>
 #endif /* HAVE_BACKTRACE */
 
+#ifdef HAVE_FATALSIG_H
+#include <fatalsig.h>
+#endif /* HAVE_FATALSIG_H */
+
 #ifdef WIN32
 #include <winsock2.h>
 #include <windows.h>
@@ -665,7 +669,9 @@ METHOD(backtrace_t, log_, void,
 	}
 	free(strings);
 #else /* !HAVE_BACKTRACE && !HAVE_LIBUNWIND_H */
-	println(file, "no support for capturing backtraces");
+#ifdef HAVE_FATALSIG_H
+	fatalsig_stacktrace(SIGSEGV);
+#endif /* HAVE_FATALSIG_H */
 #endif /* HAVE_BACKTRACE/HAVE_LIBUNWIND_H */
 }
 
