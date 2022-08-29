@@ -317,6 +317,7 @@ ARG_ENABL_SET([integrity-test], [enable integrity testing of libstrongswan and p
 ARG_DISBL_SET([load-warning],   [disable the charon plugin load option warning in starter.])
 ARG_ENABL_SET([mediation],      [enable IKEv2 Mediation Extension.])
 ARG_ENABL_SET([unwind-backtraces],[use libunwind to create backtraces for memory leaks and segfaults.])
+ARG_ENABL_SET([fatalsig-backtraces],[use libfatalsig to create backtraces for memory leaks and segfaults.])
 ARG_ENABL_SET([ruby-gems],      [enable build of provided ruby gems.])
 ARG_ENABL_SET([ruby-gems-install],[enable installation of provided ruby gems.])
 ARG_ENABL_SET([python-eggs],    [enable build of provided python eggs.])
@@ -1321,6 +1322,12 @@ if test x$unwind_backtraces = xtrue; then
 		[AC_MSG_ERROR([libunwind.h header not found!])])
 	UNWINDLIB="-lunwind"
 	AC_SUBST(UNWINDLIB)
+fi
+
+if test x$fatalsig_backtraces = xtrue; then
+	AC_DEFINE([HAVE_FATALSIG_H],,[enable fatalsig])
+	FATALSIGLIB="-lfatalsig"
+	AC_SUBST(FATALSIGLIB)
 fi
 
 AM_CONDITIONAL(USE_DEV_HEADERS, [test "x$dev_headers" != xno])
