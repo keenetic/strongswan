@@ -67,9 +67,8 @@ void starter_charon_sigchild(pid_t pid, int status)
 		}
 		if (!_stop_requested)
 		{
-			DBG1(DBG_APP, "%s has died -- restart scheduled (%dsec)",
-				 daemon_name, CHARON_RESTART_DELAY);
-			alarm(CHARON_RESTART_DELAY);   // restart in 5 sec
+			DBG1(DBG_APP, "%s has died", daemon_name);
+			_stop_requested = 1;
 		}
 		unlink(pid_file);
 	}
