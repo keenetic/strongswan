@@ -15,11 +15,6 @@
  * for more details.
  */
 
-#include "stroke_attribute.h"
-#include <daemon.h>
-#include <collections/linked_list.h>
-#include <threading/rwlock.h>
-
 /* vasprintf() */
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -28,6 +23,11 @@
 
 #include <ndm/core.h>
 #include <ndm/xml.h>
+
+#include "stroke_attribute.h"
+#include <daemon.h>
+#include <collections/linked_list.h>
+#include <threading/rwlock.h>
 
 typedef struct private_stroke_attribute_t private_stroke_attribute_t;
 
