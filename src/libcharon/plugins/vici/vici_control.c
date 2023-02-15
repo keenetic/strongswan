@@ -322,14 +322,20 @@ CALLBACK(terminate, vici_message_t*,
 			}
 			csas->destroy(csas);
 		}
-		else if (ike && streq(ike, ike_sa->get_name(ike_sa)))
+		else if (ike_id)
 		{
-			current = ike_sa->get_unique_id(ike_sa);
-			array_insert(ids, ARRAY_TAIL, &current);
+			if (ike_id == ike_sa->get_unique_id(ike_sa))
+			{
+				array_insert(ids, ARRAY_TAIL, &ike_id);
+			}
 		}
-		else if (ike_id && ike_id == ike_sa->get_unique_id(ike_sa))
+		else if (ike)
 		{
-			array_insert(ids, ARRAY_TAIL, &ike_id);
+			if (streq(ike, ike_sa->get_name(ike_sa)))
+			{
+				current = ike_sa->get_unique_id(ike_sa);
+				array_insert(ids, ARRAY_TAIL, &current);
+			}
 		}
 	}
 	isas->destroy(isas);
