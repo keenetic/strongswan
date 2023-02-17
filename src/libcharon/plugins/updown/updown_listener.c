@@ -335,7 +335,7 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 						child_sa_t *child_sa, child_cfg_t *config, bool up,
 						traffic_selector_t *my_ts, traffic_selector_t *other_ts)
 {
-	host_t *me, *other, *host;
+	host_t *me, *other, *host = NULL;
 	char *iface;
 	uint8_t mask;
 	uint32_t if_id;
@@ -418,12 +418,17 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 		DBG1(DBG_CHD, "updown approximates local TS %R "
 					  "by next larger subnet", my_ts);
 	}
+
 	push_env(envp, countof(envp), "PLUTO_MY_CLIENT=%+H/%u", host, mask);
 
 	push_env(envp, countof(envp), "NDM_MY_SUBNET=%+H", host);
 	push_env(envp, countof(envp), "NDM_MY_MASK=%u", mask);
 
-	host->destroy(host);
+	if (host)
+	{
+		host->destroy(host);
+	}
+
 	push_env(envp, countof(envp), "PLUTO_MY_PORT=%s",
 			 get_port(my_ts, other_ts, port_buf, TRUE));
 
