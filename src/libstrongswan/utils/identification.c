@@ -988,6 +988,12 @@ METHOD(identification_t, matches_binary, id_match_t,
 	{
 		return ID_MATCH_PERFECT;
 	}
+	if (this->type == ID_USER_FQDN && other->get_type(other) == ID_FQDN &&
+		chunk_equals(this->encoded, other->get_encoding(other)))
+	{
+		return ID_MATCH_PERFECT;
+	}
+
 	return ID_MATCH_NONE;
 }
 
@@ -1029,6 +1035,11 @@ METHOD(identification_t, matches_string, id_match_t,
 	if (other->get_type(other) == ID_ANY)
 	{
 		return ID_MATCH_ANY;
+	}
+	if (this->type == ID_FQDN && other->get_type(other) == ID_USER_FQDN &&
+		chunk_equals(this->encoded, other->get_encoding(other)))
+	{
+		return ID_MATCH_PERFECT;
 	}
 	if (this->type != other->get_type(other))
 	{
