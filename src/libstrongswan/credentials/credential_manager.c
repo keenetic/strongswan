@@ -599,7 +599,7 @@ static void cache_queue(private_credential_manager_t *this)
  */
 static bool check_lifetime(private_credential_manager_t *this,
 						   certificate_t *cert, char *label,
-						   int pathlen, bool trusted, auth_cfg_t *auth)
+						   int pathlen, bool anchor, auth_cfg_t *auth)
 {
 	time_t not_before, not_after;
 	cert_validator_t *validator;
@@ -614,7 +614,7 @@ static bool check_lifetime(private_credential_manager_t *this,
 			continue;
 		}
 		status = validator->check_lifetime(validator, cert,
-										   pathlen, trusted, auth);
+										   pathlen, anchor, auth);
 		if (status != NEED_MORE)
 		{
 			break;
@@ -647,13 +647,13 @@ static bool check_lifetime(private_credential_manager_t *this,
  */
 static bool check_certificate(private_credential_manager_t *this,
 				certificate_t *subject, certificate_t *issuer, bool online,
-				int pathlen, bool trusted, auth_cfg_t *auth)
+				int pathlen, bool anchor, auth_cfg_t *auth)
 {
 	cert_validator_t *validator;
 	enumerator_t *enumerator;
 
 	if (!check_lifetime(this, subject, "subject", pathlen, FALSE, auth) ||
-		!check_lifetime(this, issuer, "issuer", pathlen + 1, trusted, auth))
+		!check_lifetime(this, issuer, "issuer", pathlen + 1, anchor, auth))
 	{
 		return FALSE;
 	}
@@ -666,7 +666,7 @@ static bool check_certificate(private_credential_manager_t *this,
 			continue;
 		}
 		if (!validator->validate(validator, subject, issuer,
-								 online, pathlen, trusted, auth))
+								 online, pathlen, anchor, auth))
 		{
 			enumerator->destroy(enumerator);
 			return FALSE;
@@ -769,6 +769,7 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 	auth_cfg_t *auth;
 	signature_params_t *scheme;
 	int pathlen;
+	bool is_anchor = FALSE;
 
 	auth = auth_cfg_create();
 	get_key_strength(subject, auth);
@@ -786,7 +787,7 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 				auth->add(auth, AUTH_RULE_CA_CERT, issuer->get_ref(issuer));
 				DBG1(DBG_CFG, "  using trusted ca certificate \"%Y\"",
 							  issuer->get_subject(issuer));
-				trusted = TRUE;
+				trusted = is_anchor = TRUE;
 			}
 			else
 			{
@@ -821,11 +822,18 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 				DBG1(DBG_CFG, "  issuer is \"%Y\"",
 					 current->get_issuer(current));
 				call_hook(this, CRED_HOOK_NO_ISSUER, current);
+				if (trusted)
+				{
+					DBG1(DBG_CFG, "  reached end of incomplete trust chain for "
+						 "trusted certificate \"%Y\"",
+						 subject->get_subject(subject));
+				}
 				break;
 			}
 		}
-		if (!check_certificate(this, current, issuer, online,
-							   pathlen, trusted, auth))
+		/* don't do online verification here */
+		if (!check_certificate(this, current, issuer, FALSE,
+							   pathlen, is_anchor, auth))
 		{
 			trusted = FALSE;
 			issuer->destroy(issuer);
@@ -837,7 +845,7 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 		}
 		current->destroy(current);
 		current = issuer;
-		if (trusted)
+		if (is_anchor)
 		{
 			DBG1(DBG_CFG, "  reached self-signed root ca with a "
 				 "path length of %d", pathlen);
@@ -849,6 +857,34 @@ static bool verify_trust_chain(private_credential_manager_t *this,
 	{
 		DBG1(DBG_CFG, "maximum path length of %d exceeded", MAX_TRUST_PATH_LEN);
 		call_hook(this, CRED_HOOK_EXCEEDED_PATH_LEN, subject);
+	}
+	else if (trusted && online)
+	{
+		enumerator_t *enumerator;
+		auth_rule_t rule;
+
+		/* do online revocation checks after basic validation of the chain */
+		pathlen = 0;
+		current = subject;
+		enumerator = auth->create_enumerator(auth);
+		while (enumerator->enumerate(enumerator, &rule, &issuer))
+		{
+			if (rule == AUTH_RULE_CA_CERT || rule == AUTH_RULE_IM_CERT)
+			{
+				if (!check_certificate(this, current, issuer, TRUE, pathlen++,
+									   rule == AUTH_RULE_CA_CERT, auth))
+				{
+					trusted = FALSE;
+					break;
+				}
+				else if (rule == AUTH_RULE_CA_CERT)
+				{
+					break;
+				}
+				current = issuer;
+			}
+		}
+		enumerator->destroy(enumerator);
 	}
 	if (trusted)
 	{
