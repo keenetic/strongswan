@@ -443,6 +443,11 @@ METHOD(listener_t, child_updown, bool,
 	host_t *dst, *src;
 	bool encap;
 
+	if (ike_sa == NULL)
+	{
+		return TRUE;
+	}
+
 	dst = ike_sa->get_my_host(ike_sa);
 	src = ike_sa->get_other_host(ike_sa);
 	encap = child_sa->has_encap(child_sa);

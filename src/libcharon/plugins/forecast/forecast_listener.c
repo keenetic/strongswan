@@ -511,6 +511,11 @@ METHOD(listener_t, child_updown, bool,
 	host_t *lhost, *rhost;
 	bool encap;
 
+	if (ike_sa == NULL)
+	{
+		return TRUE;
+	}
+
 	lhost = ike_sa->get_my_host(ike_sa);
 	rhost = ike_sa->get_other_host(ike_sa);
 	encap = child_sa->has_encap(child_sa);
