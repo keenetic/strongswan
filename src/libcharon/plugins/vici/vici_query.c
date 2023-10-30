@@ -1849,7 +1849,8 @@ METHOD(listener_t, child_updown, bool,
 	time_t now;
 	char buf[BUF_LEN];
 
-	if (!this->dispatcher->has_event_listeners(this->dispatcher, "child-updown"))
+	if (!this->dispatcher->has_event_listeners(this->dispatcher, "child-updown") ||
+		 ike_sa == NULL)
 	{
 		return TRUE;
 	}
