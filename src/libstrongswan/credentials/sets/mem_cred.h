@@ -138,6 +138,8 @@ struct mem_cred_t {
 	 */
 	enumerator_t *(*create_unique_shared_enumerator)(mem_cred_t *this);
 
+	enumerator_t *(*create_unique_shared_enumerator_ext)(mem_cred_t *this);
+
 	/**
 	 * Add a certificate distribution point to the set.
 	 *
