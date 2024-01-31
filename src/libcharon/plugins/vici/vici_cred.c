@@ -504,6 +504,37 @@ CALLBACK(unload_shared, vici_message_t*,
 	return create_reply(NULL);
 }
 
+CALLBACK(get_shared_ext, vici_message_t*,
+	private_vici_cred_t *this, char *name, u_int id, vici_message_t *message)
+{
+	vici_builder_t *builder;
+	enumerator_t *enumerator;
+	char *unique;
+	shared_key_type_t type = SHARED_IKE;
+	char buf[512] = "";
+
+	builder = vici_builder_create();
+	builder->begin_list(builder, "keys");
+
+	enumerator = this->creds->create_unique_shared_enumerator_ext(this->creds);
+	while (enumerator->enumerate(enumerator, &unique, &buf, &type))
+	{
+		builder->add_li(builder, "[%s](%s){%s}", unique, buf,
+			(type == SHARED_IKE ?
+				"IKE" :
+				type == SHARED_EAP ?
+					"EAP" :
+					type == SHARED_NT_HASH ?
+						"NT" :
+						"PPK"));
+		buf[0] = '\0';
+	}
+	enumerator->destroy(enumerator);
+
+	builder->end_list(builder);
+	return builder->finalize(builder);
+}
+
 CALLBACK(get_shared, vici_message_t*,
 	private_vici_cred_t *this, char *name, u_int id, vici_message_t *message)
 {
@@ -575,6 +606,7 @@ static void manage_commands(private_vici_cred_t *this, bool reg)
 	manage_command(this, "load-shared", load_shared, reg);
 	manage_command(this, "unload-shared", unload_shared, reg);
 	manage_command(this, "get-shared", get_shared, reg);
+	manage_command(this, "get-shared-ext", get_shared_ext, reg);
 }
 
 METHOD(vici_cred_t, add_cert, certificate_t*,

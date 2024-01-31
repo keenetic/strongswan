@@ -661,6 +661,62 @@ METHOD(mem_cred_t, create_unique_shared_enumerator, enumerator_t*,
 								(void*)this->lock->unlock);
 }
 
+CALLBACK(unique_filter_ext, bool,
+	void *data, enumerator_t *orig, va_list args)
+{
+	shared_entry_t *entry;
+	enumerator_t *enumerator;
+	identification_t *owner;
+	char buf[512] = "";
+	int len;
+	char **id;
+	char *ow;
+	shared_key_type_t *type;
+
+	VA_ARGS_VGET(args, id, ow, type);
+
+	while (orig->enumerate(orig, &entry))
+	{
+		if (!entry->id)
+		{
+			continue;
+		}
+		if (id)
+		{
+			*id = entry->id;
+		}
+
+		enumerator = entry->owners->create_enumerator(entry->owners);
+		while (enumerator->enumerate(enumerator, &owner))
+		{
+			len = strlen(buf);
+			if (len < sizeof(buf))
+			{
+				snprintf(buf + len, sizeof(buf) - len, "%s'%Y'",
+						 len ? ", " : "", owner);
+			}
+		}
+		enumerator->destroy(enumerator);
+
+		strcpy(ow, buf);
+
+		*type = entry->shared->get_type(entry->shared);
+
+		return TRUE;
+	}
+	return FALSE;
+}
+
+METHOD(mem_cred_t, create_unique_shared_enumerator_ext, enumerator_t*,
+	private_mem_cred_t *this)
+{
+	this->lock->read_lock(this->lock);
+	return enumerator_create_filter(
+								this->shared->create_enumerator(this->shared),
+								unique_filter_ext, this->lock,
+								(void*)this->lock->unlock);
+}
+
 /**
  * Certificate distribution point
  */
@@ -909,6 +965,7 @@ mem_cred_t *mem_cred_create()
 			.add_shared_unique = _add_shared_unique,
 			.remove_shared_unique = _remove_shared_unique,
 			.create_unique_shared_enumerator = _create_unique_shared_enumerator,
+			.create_unique_shared_enumerator_ext = _create_unique_shared_enumerator_ext,
 			.add_cdp = _add_cdp,
 			.replace_certs = _replace_certs,
 			.replace_secrets = _replace_secrets,
