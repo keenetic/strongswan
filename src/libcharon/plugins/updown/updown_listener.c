@@ -407,6 +407,17 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	push_env(envp, countof(envp), "NDM_SA_UNIQUEID=%u",
 			 child_sa->get_unique_id(child_sa));
 
+	if_id = ike_sa->get_if_id(ike_sa, TRUE);
+	if (if_id)
+	{
+		push_env(envp, countof(envp), "NDM_IF_ID_IN=%u", if_id);
+	}
+	if_id = ike_sa->get_if_id(ike_sa, FALSE);
+	if (if_id)
+	{
+		push_env(envp, countof(envp), "NDM_IF_ID_OUT=%u", if_id);
+	}
+
 	if (ike_sa != NULL)
 	{
 		push_env(envp, countof(envp), "PLUTO_ME=%H", me);
