@@ -345,7 +345,7 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 	FILE *shell;
 	process_t *process;
 	char port_buf[PORT_BUF_LEN];
-	char *envp[128] = {};
+	char *envp[512] = {};
 	ipsec_mode_t sa_mode;
 
 	me = (ike_sa != NULL ? ike_sa->get_my_host(ike_sa) : NULL);
@@ -364,6 +364,17 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 		else
 		{
 			is_ipv6 = my_ts->get_type(my_ts) == TS_IPV6_ADDR_RANGE;
+		}
+
+		if_id = ike_sa->get_if_id(ike_sa, TRUE);
+		if (if_id)
+		{
+			push_env(envp, countof(envp), "NDM_IF_ID_IN=%u", if_id);
+		}
+		if_id = ike_sa->get_if_id(ike_sa, FALSE);
+		if (if_id)
+		{
+			push_env(envp, countof(envp), "NDM_IF_ID_OUT=%u", if_id);
 		}
 	}
 	push_env(envp, countof(envp), "PLUTO_VERB=%s%s%s",
@@ -406,17 +417,6 @@ static void invoke_childsa(private_updown_listener_t *this, ike_sa_t *ike_sa,
 
 	push_env(envp, countof(envp), "NDM_SA_UNIQUEID=%u",
 			 child_sa->get_unique_id(child_sa));
-
-	if_id = ike_sa->get_if_id(ike_sa, TRUE);
-	if (if_id)
-	{
-		push_env(envp, countof(envp), "NDM_IF_ID_IN=%u", if_id);
-	}
-	if_id = ike_sa->get_if_id(ike_sa, FALSE);
-	if (if_id)
-	{
-		push_env(envp, countof(envp), "NDM_IF_ID_OUT=%u", if_id);
-	}
 
 	if (ike_sa != NULL)
 	{
