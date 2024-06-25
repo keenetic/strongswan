@@ -802,7 +802,8 @@ eap_radius_t *eap_radius_create(identification_t *server, identification_t *peer
 									"%s.plugins.eap-radius.id_prefix", "",
 									lib->ns),
 	);
-	this->client = eap_radius_create_client();
+
+	this->client = eap_radius_create_client(server);
 	if (!this->client)
 	{
 		free(this);
