@@ -360,39 +360,81 @@ plugin_t *eap_radius_plugin_create()
 	return &this->public.plugin;
 }
 
+static char *get_id_str(char *fmt, ...)
+{
+	char *str;
+	va_list args;
+
+	va_start(args, fmt);
+	if (vasprintf(&str, fmt, args) == -1)
+	{
+		str = NULL;
+	}
+	va_end(args);
+
+	return str;
+}
+
 /**
  * See header
  */
-radius_client_t *eap_radius_create_client()
+radius_client_t *eap_radius_create_client(identification_t *server)
 {
 	if (instance)
 	{
 		enumerator_t *enumerator;
 		radius_config_t *config, *selected = NULL;
 		int current, best = -1;
+		char *server_id = get_id_str("%Y", server);
 
 		instance->lock->read_lock(instance->lock);
 		enumerator = instance->configs->create_enumerator(instance->configs);
-		while (enumerator->enumerate(enumerator, &config))
+
+		while (server_id != NULL && enumerator->enumerate(enumerator, &config))
 		{
-			current = config->get_preference(config);
-			if (current > best ||
-				/* for two with equal preference, 50-50 chance */
-				(current == best && random() % 2 == 0))
+			chunk_t srv = config->get_nas_identifier(config);
+			chunk_t srv_id = chunk_create(server_id, strlen(server_id));
+
+			if (chunk_equals(srv_id, srv))
 			{
-				DBG2(DBG_CFG, "RADIUS server '%s' is candidate: %d",
-					 config->get_name(config), current);
-				best = current;
-				DESTROY_IF(selected);
+				DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%Y'",
+					 config->get_name(config), server);
 				selected = config->get_ref(config);
-			}
-			else
-			{
-				DBG2(DBG_CFG, "RADIUS server '%s' skipped: %d",
-					 config->get_name(config), current);
+				break;
 			}
 		}
+
 		enumerator->destroy(enumerator);
+
+		free(server_id);
+
+		if (!selected)
+		{
+			enumerator = instance->configs->create_enumerator(instance->configs);
+
+			while (enumerator->enumerate(enumerator, &config))
+			{
+				current = config->get_preference(config);
+				if (current > best ||
+					/* for two with equal preference, 50-50 chance */
+					(current == best && random() % 2 == 0))
+				{
+					DBG2(DBG_CFG, "RADIUS server '%s' is candidate: %d",
+						 config->get_name(config), current);
+					best = current;
+					DESTROY_IF(selected);
+					selected = config->get_ref(config);
+				}
+				else
+				{
+					DBG2(DBG_CFG, "RADIUS server '%s' skipped: %d",
+						 config->get_name(config), current);
+				}
+			}
+
+			enumerator->destroy(enumerator);
+		}
+
 		instance->lock->unlock(instance->lock);
 
 		if (selected)
