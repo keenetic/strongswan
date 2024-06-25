@@ -51,7 +51,7 @@ struct eap_radius_plugin_t {
  *
  * @return			RADIUS client
  */
-radius_client_t *eap_radius_create_client();
+radius_client_t *eap_radius_create_client(identification_t *server);
 
 /**
  * Handle a RADIUS request timeout.
