@@ -37,6 +37,9 @@
  * THE SOFTWARE.
  */
 
+/* for vasprintf() */
+#define _GNU_SOURCE
+
 #include "eap_radius_plugin.h"
 
 #include "eap_radius.h"
