@@ -382,7 +382,7 @@ static bool send_message(private_eap_radius_accounting_t *this,
 	radius_client_t *client;
 	bool ack = FALSE;
 
-	client = eap_radius_create_client(server);
+	client = eap_radius_create_client(server, FALSE);
 	if (client)
 	{
 		response = client->request(client, request);

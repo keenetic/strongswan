@@ -321,7 +321,7 @@ eap_radius_xauth_t *eap_radius_xauth_create_server(identification_t *server,
 		},
 		.server = server->clone(server),
 		.peer = peer->clone(peer),
-		.client = eap_radius_create_client(server),
+		.client = eap_radius_create_client(server, TRUE),
 		.rounds = array_create(sizeof(xauth_round_t), 0),
 	);
 

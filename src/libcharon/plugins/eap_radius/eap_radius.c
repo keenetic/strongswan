@@ -803,7 +803,7 @@ eap_radius_t *eap_radius_create(identification_t *server, identification_t *peer
 									lib->ns),
 	);
 
-	this->client = eap_radius_create_client(server);
+	this->client = eap_radius_create_client(server, FALSE);
 	if (!this->client)
 	{
 		free(this);
