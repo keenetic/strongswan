@@ -388,13 +388,12 @@ static char *get_id_str(char *fmt, ...)
 /**
  * See header
  */
-radius_client_t *eap_radius_create_client(identification_t *server)
+radius_client_t *eap_radius_create_client(identification_t *server, bool xauth)
 {
 	if (instance)
 	{
 		enumerator_t *enumerator;
 		radius_config_t *config, *selected = NULL;
-		int current, best = -1;
 		char *server_id = get_id_str("%Y", server);
 
 		instance->lock->read_lock(instance->lock);
@@ -403,47 +402,35 @@ radius_client_t *eap_radius_create_client(identification_t *server)
 		while (server_id != NULL && enumerator->enumerate(enumerator, &config))
 		{
 			chunk_t srv = config->get_nas_identifier(config);
-			chunk_t srv_id = chunk_create(server_id, strlen(server_id));
 
-			if (chunk_equals(srv_id, srv))
-			{
-				DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%Y'",
-					 config->get_name(config), server);
-				selected = config->get_ref(config);
-				break;
+			if (!xauth) {
+				chunk_t srv_id = chunk_create(server_id, strlen(server_id));
+
+				if (chunk_equals(srv_id, srv))
+				{
+					DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%Y'",
+						 config->get_name(config), server);
+					selected = config->get_ref(config);
+					break;
+				}
+			} else {
+				chunk_t srv_id = chunk_create(
+					"IPSECXAUTHSERVER",
+					strlen("IPSECXAUTHSERVER"));
+
+				if (chunk_equals(srv_id, srv))
+				{
+					DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%Y'",
+						 config->get_name(config), server);
+					selected = config->get_ref(config);
+					break;
+				}
 			}
 		}
 
 		enumerator->destroy(enumerator);
 
 		free(server_id);
-
-		if (!selected)
-		{
-			enumerator = instance->configs->create_enumerator(instance->configs);
-
-			while (enumerator->enumerate(enumerator, &config))
-			{
-				current = config->get_preference(config);
-				if (current > best ||
-					/* for two with equal preference, 50-50 chance */
-					(current == best && random() % 2 == 0))
-				{
-					DBG2(DBG_CFG, "RADIUS server '%s' is candidate: %d",
-						 config->get_name(config), current);
-					best = current;
-					DESTROY_IF(selected);
-					selected = config->get_ref(config);
-				}
-				else
-				{
-					DBG2(DBG_CFG, "RADIUS server '%s' skipped: %d",
-						 config->get_name(config), current);
-				}
-			}
-
-			enumerator->destroy(enumerator);
-		}
 
 		instance->lock->unlock(instance->lock);
 
