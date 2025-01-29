@@ -391,7 +391,7 @@ radius_client_t *eap_radius_create_client(identification_t *server, bool xauth,
 
 			if (chunk_equals(nas_id, ikesa))
 			{
-				DBG1(DBG_CFG, "RADIUS server '%s' selected by IKE SA '%s'",
+				DBG2(DBG_CFG, "RADIUS server '%s' selected by IKE SA '%s'",
 					 config->get_name(config), ikesa.ptr);
 				selected = config->get_ref(config);
 				break;
@@ -413,7 +413,7 @@ radius_client_t *eap_radius_create_client(identification_t *server, bool xauth,
 
 				if (chunk_equals(srv_id, nas_id))
 				{
-					DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%s'",
+					DBG2(DBG_CFG, "RADIUS server '%s' selected by ID '%s'",
 						 config->get_name(config), srv_id.ptr);
 					selected = config->get_ref(config);
 					break;
