@@ -61,6 +61,8 @@ struct private_eap_peap_peer_t {
 	 * AVP handler
 	 */
 	eap_peap_avp_t *avp;
+
+	char *ikesa_name;
 };
 
 METHOD(tls_application_t, process, status_t,
@@ -148,7 +150,8 @@ METHOD(tls_application_t, process, status_t,
 		}
 		this->ph2_method = charon->eap->create_instance(charon->eap,
 									received_type, received_vendor,
-									EAP_PEER, this->server, this->peer);
+									EAP_PEER, this->server, this->peer,
+									this->ikesa_name);
 		if (!this->ph2_method)
 		{
 			DBG1(DBG_IKE, "EAP method not supported");
@@ -228,6 +231,7 @@ METHOD(tls_application_t, destroy, void,
 	DESTROY_IF(this->ph2_method);
 	DESTROY_IF(this->out);
 	this->avp->destroy(this->avp);
+	free(this->ikesa_name);
 	free(this);
 }
 
@@ -236,7 +240,8 @@ METHOD(tls_application_t, destroy, void,
  */
 eap_peap_peer_t *eap_peap_peer_create(identification_t *server,
 									  identification_t *peer,
-									  eap_method_t *eap_method)
+									  eap_method_t *eap_method,
+									  const char *ikesa_name)
 {
 	private_eap_peap_peer_t *this;
 
@@ -252,6 +257,7 @@ eap_peap_peer_t *eap_peap_peer_create(identification_t *server,
 		.peer = peer->clone(peer),
 		.ph1_method = eap_method,
 		.avp = eap_peap_avp_create(FALSE),
+		.ikesa_name = strdup(ikesa_name)
 	);
 
 	return &this->public;

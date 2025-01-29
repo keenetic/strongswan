@@ -68,7 +68,8 @@ struct xauth_manager_t {
 	 */
 	xauth_method_t* (*create_instance)(xauth_manager_t *this,
 							char *name, xauth_role_t role,
-							identification_t *server, identification_t *peer);
+							identification_t *server, identification_t *peer,
+							const char *ikesa_name);
 
 	/**
 	 * Destroy a eap_manager instance.

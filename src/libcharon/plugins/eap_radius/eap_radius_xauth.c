@@ -306,7 +306,8 @@ METHOD(xauth_method_t, destroy, void,
  */
 eap_radius_xauth_t *eap_radius_xauth_create_server(identification_t *server,
 												   identification_t *peer,
-												   char *profile)
+												   char *profile,
+												   const char *ikesa_name)
 {
 	private_eap_radius_xauth_t *this;
 
@@ -321,7 +322,7 @@ eap_radius_xauth_t *eap_radius_xauth_create_server(identification_t *server,
 		},
 		.server = server->clone(server),
 		.peer = peer->clone(peer),
-		.client = eap_radius_create_client(server, TRUE),
+		.client = eap_radius_create_client(server, TRUE, ikesa_name),
 		.rounds = array_create(sizeof(xauth_round_t), 0),
 	);
 

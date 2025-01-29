@@ -45,7 +45,8 @@ struct eap_peap_t {
  * @return			eap_peap_t object
  */
 eap_peap_t *eap_peap_create_server(identification_t *server,
-								   identification_t *peer);
+								   identification_t *peer,
+								   const char *ikesa_name);
 
 /**
  * Creates the EAP method EAP-PEAP acting as peer.
@@ -55,6 +56,7 @@ eap_peap_t *eap_peap_create_server(identification_t *server,
  * @return			eap_peap_t object
  */
 eap_peap_t *eap_peap_create_peer(identification_t *server,
-								 identification_t *peer);
+								 identification_t *peer,
+								 const char *ikesa_name);
 
 #endif /** EAP_PEAP_H_ @}*/

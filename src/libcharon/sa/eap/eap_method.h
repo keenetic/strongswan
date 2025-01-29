@@ -177,7 +177,8 @@ struct eap_method_t {
  * @return				implementation of the eap_method_t interface
  */
 typedef eap_method_t *(*eap_constructor_t)(identification_t *server,
-										   identification_t *peer);
+										   identification_t *peer,
+										   const char *ikesa_name);
 
 /**
  * Helper function to (un-)register EAP methods from plugin features.

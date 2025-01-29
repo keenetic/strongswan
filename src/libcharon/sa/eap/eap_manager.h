@@ -79,7 +79,8 @@ struct eap_manager_t {
 	eap_method_t* (*create_instance)(eap_manager_t *this, eap_type_t type,
 									 pen_t vendor, eap_role_t role,
 									 identification_t *server,
-									 identification_t *peer);
+									 identification_t *peer,
+									 const char *ikesa_name);
 
 	/**
 	 * Destroy a eap_manager instance.

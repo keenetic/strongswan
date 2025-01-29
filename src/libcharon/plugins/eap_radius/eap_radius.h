@@ -45,7 +45,8 @@ struct eap_radius_t {
  * @param peer		ID of the EAP client
  * @return			eap_radius_t object
  */
-eap_radius_t *eap_radius_create(identification_t *server, identification_t *peer);
+eap_radius_t *eap_radius_create(identification_t *server, identification_t *peer,
+								const char *ikesa_name);
 
 /**
  * Process additional attributes from an Access-Accept.

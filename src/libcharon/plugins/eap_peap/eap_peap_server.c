@@ -86,6 +86,8 @@ struct private_eap_peap_server_t {
 	 * AVP handler
 	 */
 	eap_peap_avp_t *avp;
+
+	char *ikesa_name;
 };
 
 /**
@@ -107,7 +109,7 @@ static status_t start_phase2_auth(private_eap_peap_server_t *this)
 	}
 	DBG1(DBG_IKE, "phase2 method %N selected", eap_type_names, type);
 		this->ph2_method = charon->eap->create_instance(charon->eap, type, 0,
-								EAP_SERVER, this->server, this->peer);
+								EAP_SERVER, this->server, this->peer, this->ikesa_name);
 	if (this->ph2_method == NULL)
 	{
 		DBG1(DBG_IKE, "%N method not available", eap_type_names, type);
@@ -139,7 +141,7 @@ static status_t start_phase2_tnc(private_eap_peap_server_t *this)
 	{
 		DBG1(DBG_IKE, "phase2 method %N selected", eap_type_names, EAP_TNC);
 		this->ph2_method = charon->eap->create_instance(charon->eap, EAP_TNC,
-									0, EAP_SERVER, this->server, this->peer);
+									0, EAP_SERVER, this->server, this->peer, this->ikesa_name);
 		if (this->ph2_method == NULL)
 		{
 			DBG1(DBG_IKE, "%N method not available", eap_type_names, EAP_TNC);
@@ -251,7 +253,7 @@ METHOD(tls_application_t, process, status_t,
 			/* Received an EAP Identity response without a matching request */
 			this->ph2_method = charon->eap->create_instance(charon->eap,
 											 EAP_IDENTITY, 0, EAP_SERVER,
-											 this->server, this->peer);
+											 this->server, this->peer, this->ikesa_name);
 			if (this->ph2_method == NULL)
 			{
 				DBG1(DBG_IKE, "%N method not available",
@@ -357,7 +359,7 @@ METHOD(tls_application_t, build, status_t,
 		 * after the server
 		 */
 		this->ph2_method = charon->eap->create_instance(charon->eap, EAP_IDENTITY,
-								 0,	EAP_SERVER, this->server, this->peer);
+								 0,	EAP_SERVER, this->server, this->peer, this->ikesa_name);
 		if (!this->ph2_method)
 		{
 			DBG1(DBG_IKE, "%N method not available",
@@ -415,6 +417,7 @@ METHOD(tls_application_t, destroy, void,
 	DESTROY_IF(this->ph2_method);
 	DESTROY_IF(this->out);
 	this->avp->destroy(this->avp);
+	free(this->ikesa_name);
 	free(this);
 }
 
@@ -423,7 +426,8 @@ METHOD(tls_application_t, destroy, void,
  */
 eap_peap_server_t *eap_peap_server_create(identification_t *server,
 										  identification_t *peer,
-										  eap_method_t *eap_method)
+										  eap_method_t *eap_method,
+										  const char *ikesa_name)
 {
 	private_eap_peap_server_t *this;
 
@@ -446,6 +450,7 @@ eap_peap_server_t *eap_peap_server_create(identification_t *server,
 										FALSE, lib->ns),
 		.phase2_result = EAP_FAILURE,
 		.avp = eap_peap_avp_create(TRUE),
+		.ikesa_name = strdup(ikesa_name)
 	);
 
 	return &this->public;

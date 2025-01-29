@@ -147,7 +147,7 @@ static eap_method_t *load_method(private_eap_authenticator_t *this,
 		server = aaa;
 	}
 	return charon->eap->create_instance(charon->eap, type, vendor,
-										role, server, peer);
+										role, server, peer, this->ike_sa->get_name(this->ike_sa));
 }
 
 /**

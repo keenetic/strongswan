@@ -376,13 +376,14 @@ static void cleanup_sas(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa,
  */
 static bool send_message(private_eap_radius_accounting_t *this,
 						 radius_message_t *request,
-						 identification_t *server)
+						 identification_t *server,
+						 const char *ikesa_name)
 {
 	radius_message_t *response;
 	radius_client_t *client;
 	bool ack = FALSE;
 
-	client = eap_radius_create_client(server, FALSE);
+	client = eap_radius_create_client(server, FALSE, ikesa_name);
 	if (client)
 	{
 		response = client->request(client, request);
@@ -672,7 +673,8 @@ static job_requeue_t send_interim(interim_data_t *data)
 
 	if (message)
 	{
-		if (!send_message(this, message, ike_sa->get_my_id(ike_sa)))
+		if (!send_message(this, message, ike_sa->get_my_id(ike_sa),
+						  ike_sa->get_name(ike_sa)))
 		{
 			if (lib->settings->get_bool(lib->settings,
 							"%s.plugins.eap-radius.accounting_close_on_timeout",
@@ -773,7 +775,8 @@ static void send_start(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa)
 	this->mutex->unlock(this->mutex);
 
 	add_ike_sa_parameters(this, message, ike_sa);
-	if (!send_message(this, message, ike_sa->get_my_id(ike_sa)))
+	if (!send_message(this, message, ike_sa->get_my_id(ike_sa),
+			ike_sa->get_name(ike_sa)))
 	{
 		eap_radius_handle_timeout(ike_sa->get_id(ike_sa));
 	}
@@ -852,7 +855,8 @@ static void send_stop(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa)
 		value = htonl(entry->cause);
 		message->add(message, RAT_ACCT_TERMINATE_CAUSE, chunk_from_thing(value));
 
-		if (!send_message(this, message, ike_sa->get_my_id(ike_sa)))
+		if (!send_message(this, message, ike_sa->get_my_id(ike_sa),
+				ike_sa->get_name(ike_sa)))
 		{
 			eap_radius_handle_timeout(NULL);
 		}
