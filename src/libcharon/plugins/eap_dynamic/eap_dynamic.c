@@ -60,6 +60,8 @@ struct private_eap_dynamic_t {
 	 * The proxied EAP method
 	 */
 	eap_method_t *method;
+
+	char* ikesa_name;
 };
 
 /**
@@ -88,7 +90,7 @@ static eap_method_t *load_method(private_eap_dynamic_t *this,
 	eap_method_t *method;
 
 	method = charon->eap->create_instance(charon->eap, type, vendor, EAP_SERVER,
-										  this->server, this->peer);
+										  this->server, this->peer, this->ikesa_name);
 	if (!method)
 	{
 		if (vendor)
@@ -303,6 +305,7 @@ METHOD(eap_method_t, destroy, void,
 	DESTROY_FUNCTION_IF(this->other_types, (void*)free);
 	this->server->destroy(this->server);
 	this->peer->destroy(this->peer);
+	free(this->ikesa_name);
 	free(this);
 }
 
@@ -376,7 +379,8 @@ static void get_supported_eap_types(private_eap_dynamic_t *this)
  * Defined in header
  */
 eap_dynamic_t *eap_dynamic_create(identification_t *server,
-								  identification_t *peer)
+								  identification_t *peer,
+								  const char *ikesa_name)
 {
 	private_eap_dynamic_t *this;
 	char *preferred;
@@ -399,6 +403,7 @@ eap_dynamic_t *eap_dynamic_create(identification_t *server,
 		.types = linked_list_create(),
 		.prefer_peer = lib->settings->get_bool(lib->settings,
 						"%s.plugins.eap-dynamic.prefer_peer", FALSE, lib->ns),
+		.ikesa_name = strdup(ikesa_name)
 	);
 
 	/* get all supported EAP methods */

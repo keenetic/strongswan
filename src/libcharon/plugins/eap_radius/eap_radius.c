@@ -776,7 +776,8 @@ METHOD(eap_method_t, destroy, void,
 /**
  * Generic constructor
  */
-eap_radius_t *eap_radius_create(identification_t *server, identification_t *peer)
+eap_radius_t *eap_radius_create(identification_t *server, identification_t *peer,
+								const char *ikesa_name)
 {
 	private_eap_radius_t *this;
 
@@ -803,7 +804,7 @@ eap_radius_t *eap_radius_create(identification_t *server, identification_t *peer
 									lib->ns),
 	);
 
-	this->client = eap_radius_create_client(server, FALSE);
+	this->client = eap_radius_create_client(server, FALSE, ikesa_name);
 	if (!this->client)
 	{
 		free(this);

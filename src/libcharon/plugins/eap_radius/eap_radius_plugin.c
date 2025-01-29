@@ -367,67 +367,58 @@ PLUGIN_DEFINE(eap_radius)
 	return &this->public.plugin;
 }
 
-static char *get_id_str(char *fmt, ...)
-{
-	char *str;
-	va_list args;
-
-	va_start(args, fmt);
-	if (vasprintf(&str, fmt, args) == -1)
-	{
-		str = NULL;
-	}
-	va_end(args);
-
-	return str;
-}
-
 /**
  * See header
  */
-radius_client_t *eap_radius_create_client(identification_t *server, bool xauth)
+radius_client_t *eap_radius_create_client(identification_t *server, bool xauth,
+										  const char *ikesa_name)
 {
 	if (instance)
 	{
 		enumerator_t *enumerator;
 		radius_config_t *config, *selected = NULL;
-		char *server_id = get_id_str("%Y", server);
+		chunk_t ikesa = chunk_from_str((char *)ikesa_name);
 
 		instance->lock->read_lock(instance->lock);
 		enumerator = instance->configs->create_enumerator(instance->configs);
 
-		while (server_id != NULL && enumerator->enumerate(enumerator, &config))
+		while (enumerator->enumerate(enumerator, &config))
 		{
-			chunk_t srv = config->get_nas_identifier(config);
+			chunk_t nas_id = config->get_nas_identifier(config);
 
-			if (!xauth) {
-				chunk_t srv_id = chunk_create(server_id, strlen(server_id));
-
-				if (chunk_equals(srv_id, srv))
-				{
-					DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%Y'",
-						 config->get_name(config), server);
-					selected = config->get_ref(config);
-					break;
-				}
-			} else {
-				chunk_t srv_id = chunk_create(
-					"IPSECXAUTHSERVER",
-					strlen("IPSECXAUTHSERVER"));
-
-				if (chunk_equals(srv_id, srv))
-				{
-					DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%Y'",
-						 config->get_name(config), server);
-					selected = config->get_ref(config);
-					break;
-				}
+			if (chunk_equals(nas_id, ikesa))
+			{
+				DBG1(DBG_CFG, "RADIUS server '%s' selected by IKE SA '%s'",
+					 config->get_name(config), ikesa.ptr);
+				selected = config->get_ref(config);
+				break;
 			}
 		}
 
 		enumerator->destroy(enumerator);
 
-		free(server_id);
+		if (xauth && !selected)
+		{
+			enumerator = instance->configs->create_enumerator(instance->configs);
+
+			while (enumerator->enumerate(enumerator, &config))
+			{
+				chunk_t nas_id = config->get_nas_identifier(config);
+				chunk_t srv_id = chunk_create(
+					"IPSECXAUTHSERVER",
+					strlen("IPSECXAUTHSERVER"));
+
+				if (chunk_equals(srv_id, nas_id))
+				{
+					DBG1(DBG_CFG, "RADIUS server '%s' selected by ID '%s'",
+						 config->get_name(config), srv_id.ptr);
+					selected = config->get_ref(config);
+					break;
+				}
+			}
+
+			enumerator->destroy(enumerator);
+		}
 
 		instance->lock->unlock(instance->lock);
 

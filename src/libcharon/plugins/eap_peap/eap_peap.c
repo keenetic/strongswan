@@ -190,7 +190,8 @@ static eap_peap_t *eap_peap_create(private_eap_peap_t * this,
 }
 
 eap_peap_t *eap_peap_create_server(identification_t *server,
-								   identification_t *peer)
+								   identification_t *peer,
+								   const char *ikesa_name)
 {
 	private_eap_peap_t *eap_peap;
 	eap_method_t *eap_method;
@@ -200,14 +201,15 @@ eap_peap_t *eap_peap_create_server(identification_t *server,
 	/* the tunneled application needs a reference to the outer EAP-PEAP method */
 	eap_peap = eap_peap_create_empty();
 	eap_method = &eap_peap->public.eap_method;
-	eap_peap_server = eap_peap_server_create(server, peer, eap_method);
+	eap_peap_server = eap_peap_server_create(server, peer, eap_method, ikesa_name);
 	application = &eap_peap_server->application;
 
 	return eap_peap_create(eap_peap, server, peer, TRUE, application);
 }
 
 eap_peap_t *eap_peap_create_peer(identification_t *server,
-								 identification_t *peer)
+								 identification_t *peer,
+								 const char *ikesa_name)
 {
 	private_eap_peap_t *eap_peap;
 	eap_method_t *eap_method;
@@ -217,7 +219,7 @@ eap_peap_t *eap_peap_create_peer(identification_t *server,
 	/* the tunneled application needs a reference to the outer EAP-PEAP method */
 	eap_peap = eap_peap_create_empty();
 	eap_method = &eap_peap->public.eap_method;
-	eap_peap_peer = eap_peap_peer_create(server, peer, eap_method);
+	eap_peap_peer = eap_peap_peer_create(server, peer, eap_method, ikesa_name);
 	application = &eap_peap_peer->application;
 
 	return eap_peap_create(eap_peap, server, peer, FALSE, application);

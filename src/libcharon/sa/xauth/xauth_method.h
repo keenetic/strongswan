@@ -110,7 +110,8 @@ struct xauth_method_t {
  */
 typedef xauth_method_t *(*xauth_constructor_t)(identification_t *server,
 											   identification_t *peer,
-											   char *profile);
+											   char *profile,
+											   const char *ikesa_name);
 
 /**
  * Helper function to (un-)register XAuth methods from plugin features.

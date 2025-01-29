@@ -48,6 +48,7 @@ struct eap_dynamic_t {
  * @return			eap_dynamic_t object
  */
 eap_dynamic_t *eap_dynamic_create(identification_t *server,
-								  identification_t *peer);
+								  identification_t *peer,
+								  const char *ikesa_name);
 
 #endif /** EAP_DYNAMIC_H_ @}*/

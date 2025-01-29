@@ -53,6 +53,7 @@ struct xauth_eap_t {
  */
 xauth_eap_t *xauth_eap_create_server(identification_t *server,
 									 identification_t *peer,
-									 char *profile);
+									 char *profile,
+									 const char *ikesa_name);
 
 #endif /** XAUTH_EAP_H_ @}*/

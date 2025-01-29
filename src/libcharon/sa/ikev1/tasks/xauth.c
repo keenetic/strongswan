@@ -128,7 +128,7 @@ static xauth_method_t *load_method(private_xauth_t* this)
 		peer = this->user;
 	}
 	xauth = charon->xauth->create_instance(charon->xauth, name, role,
-										   server, peer);
+										   server, peer, this->ike_sa->get_name(this->ike_sa));
 	if (!xauth)
 	{
 		if (name)

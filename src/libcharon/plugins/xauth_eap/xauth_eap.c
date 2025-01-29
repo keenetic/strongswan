@@ -52,6 +52,8 @@ struct private_xauth_eap_t {
 	 * XAuth password
 	 */
 	chunk_t pass;
+
+	char *ikesa_name;
 };
 
 /**
@@ -123,7 +125,7 @@ static bool verify_eap(private_xauth_eap_t *this, eap_method_t *backend)
 	}
 	type = request->get_type(request, &vendor);
 	frontend = charon->eap->create_instance(charon->eap, type, vendor,
-											EAP_PEER, this->server, this->peer);
+											EAP_PEER, this->server, this->peer, this->ikesa_name);
 	if (!frontend)
 	{
 		DBG1(DBG_IKE, "XAuth-EAP backend requested %N, but not supported",
@@ -233,7 +235,7 @@ METHOD(xauth_method_t, process, status_t,
 		return FAILED;
 	}
 	backend = charon->eap->create_instance(charon->eap, type, 0, EAP_SERVER,
-										   this->server, this->peer);
+										   this->server, this->peer, this->ikesa_name);
 	if (!backend)
 	{
 		DBG1(DBG_CFG, "XAuth-EAP method backend not supported: %s", name);
@@ -260,6 +262,7 @@ METHOD(xauth_method_t, destroy, void,
 	this->cred->destroy(this->cred);
 	this->server->destroy(this->server);
 	this->peer->destroy(this->peer);
+	free(this->ikesa_name);
 	free(this);
 }
 
@@ -267,7 +270,8 @@ METHOD(xauth_method_t, destroy, void,
  * Described in header.
  */
 xauth_eap_t *xauth_eap_create_server(identification_t *server,
-									 identification_t *peer, char *profile)
+									 identification_t *peer, char *profile,
+									 const char *ikesa_name)
 {
 	private_xauth_eap_t *this;
 
@@ -282,6 +286,7 @@ xauth_eap_t *xauth_eap_create_server(identification_t *server,
 		},
 		.server = server->clone(server),
 		.peer = peer->clone(peer),
+		.ikesa_name = strdup(ikesa_name)
 	);
 
 	this->cred = callback_cred_create_shared((void*)shared_cb, this);

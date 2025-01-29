@@ -45,6 +45,7 @@ struct eap_peap_peer_t {
  */
 eap_peap_peer_t *eap_peap_peer_create(identification_t *server,
 									  identification_t *peer,
-									  eap_method_t *eap_method);
+									  eap_method_t *eap_method,
+									  const char *ikesa_name);
 
 #endif /** EAP_PEAP_PEER_H_ @}*/

@@ -106,7 +106,8 @@ METHOD(xauth_manager_t, remove_method, void,
 
 METHOD(xauth_manager_t, create_instance, xauth_method_t*,
 	private_xauth_manager_t *this, char *name, xauth_role_t role,
-	identification_t *server, identification_t *peer)
+	identification_t *server, identification_t *peer,
+	const char *ikesa_name)
 {
 	enumerator_t *enumerator;
 	xauth_entry_t *entry;
@@ -133,7 +134,7 @@ METHOD(xauth_manager_t, create_instance, xauth_method_t*,
 		}
 		if (role == entry->role && (!name || streq(name, entry->name)))
 		{
-			method = entry->constructor(server, peer, profile);
+			method = entry->constructor(server, peer, profile, ikesa_name);
 			if (method)
 			{
 				break;

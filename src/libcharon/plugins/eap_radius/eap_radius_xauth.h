@@ -47,6 +47,7 @@ struct eap_radius_xauth_t {
  */
 eap_radius_xauth_t *eap_radius_xauth_create_server(identification_t *server,
 												   identification_t *peer,
-												   char *profile);
+												   char *profile,
+												   const char *ikesa_name);
 
 #endif /** EAP_RADIUS_XAUTH_H_ @}*/

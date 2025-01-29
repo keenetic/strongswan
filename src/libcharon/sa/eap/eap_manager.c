@@ -153,7 +153,8 @@ METHOD(eap_manager_t, create_enumerator, enumerator_t*,
 
 METHOD(eap_manager_t, create_instance, eap_method_t*,
 	private_eap_manager_t *this, eap_type_t type, pen_t vendor,
-	eap_role_t role, identification_t *server, identification_t *peer)
+	eap_role_t role, identification_t *server, identification_t *peer,
+	const char *ikesa_name)
 {
 	enumerator_t *enumerator;
 	eap_entry_t *entry;
@@ -166,7 +167,7 @@ METHOD(eap_manager_t, create_instance, eap_method_t*,
 		if (type == entry->type && vendor == entry->vendor &&
 			role == entry->role)
 		{
-			method = entry->constructor(server, peer);
+			method = entry->constructor(server, peer, ikesa_name);
 			if (method)
 			{
 				break;
