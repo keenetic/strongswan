@@ -935,7 +935,7 @@ METHOD(listener_t, assign_vips, bool,
 	private_eap_radius_accounting_t *this, ike_sa_t *ike_sa, bool assign)
 {
 	/* start accounting as soon as the virtual IP is set */
-	if (assign && ike_sa->get_version(ike_sa) == IKEV1)
+	if (assign)
 	{
 		send_start(this, ike_sa);
 	}
@@ -1040,6 +1040,11 @@ METHOD(listener_t, child_updown, bool,
 	private_eap_radius_accounting_t *this, ike_sa_t *ike_sa,
 	child_sa_t *child_sa, bool up)
 {
+	if (up && ike_sa != NULL && ike_sa->get_state(ike_sa) == IKE_ESTABLISHED)
+	{
+		send_start(this, ike_sa);
+
+	} else
 	if (!up && ike_sa != NULL && ike_sa->get_state(ike_sa) == IKE_ESTABLISHED)
 	{
 		update_usage(this, ike_sa, child_sa);
