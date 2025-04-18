@@ -1040,7 +1040,7 @@ METHOD(listener_t, child_updown, bool,
 	private_eap_radius_accounting_t *this, ike_sa_t *ike_sa,
 	child_sa_t *child_sa, bool up)
 {
-	if (up && ike_sa != NULL && ike_sa->get_state(ike_sa) == IKE_ESTABLISHED)
+	if (up && ike_sa != NULL && ike_sa->get_state(ike_sa) == IKE_ESTABLISHED && has_vip(ike_sa))
 	{
 		send_start(this, ike_sa);
 
