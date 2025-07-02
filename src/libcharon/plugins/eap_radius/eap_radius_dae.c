@@ -197,7 +197,9 @@ static void send_response(private_eap_radius_dae_t *this,
 /**
  * Add all IKE_SAs matching to user to a list
  */
-static void add_matching_ike_sas(linked_list_t *list, identification_t *user)
+static void add_matching_ike_sas(linked_list_t *list,
+								 identification_t *user,
+								 const char* portId, const uint32_t port)
 {
 	enumerator_t *enumerator;
 	ike_sa_t *ike_sa;
@@ -207,6 +209,16 @@ static void add_matching_ike_sas(linked_list_t *list, identification_t *user)
 												charon->ike_sa_manager, FALSE);
 	while (enumerator->enumerate(enumerator, &ike_sa))
 	{
+		if (port > 0 && ike_sa->get_unique_id(ike_sa) != port)
+		{
+			continue;
+		}
+
+		if (*portId != '\0' && strcmp(ike_sa->get_name(ike_sa), portId) != 0)
+		{
+			continue;
+		}
+
 		if (user->matches(user, ike_sa->get_other_eap_id(ike_sa)))
 		{
 			id = ike_sa->get_id(ike_sa);
@@ -227,8 +239,29 @@ static linked_list_t *get_matching_ike_sas(private_eap_radius_dae_t *this,
 	linked_list_t *ids;
 	chunk_t data;
 	int type;
+	char portId[MAX_RADIUS_ATTRIBUTE_SIZE + 1];
+	uint32_t port = 0;
+
+	portId[0] = '\0';
 
 	ids = linked_list_create();
+
+	enumerator = request->create_enumerator(request);
+	while (enumerator->enumerate(enumerator, &type, &data))
+	{
+		if (type == RAT_NAS_PORT_ID && data.len)
+		{
+			memcpy(portId, data.ptr, data.len);
+			portId[data.len] = '\0';
+
+		} else
+		if (type == RAT_NAS_PORT && data.len == sizeof(uint32_t))
+		{
+			port = ntohl(*(uint32_t*)data.ptr);
+		}
+	}
+
+	enumerator->destroy(enumerator);
 
 	enumerator = request->create_enumerator(request);
 	while (enumerator->enumerate(enumerator, &type, &data))
@@ -239,7 +272,7 @@ static linked_list_t *get_matching_ike_sas(private_eap_radius_dae_t *this,
 			DBG1(DBG_CFG, "received RADIUS DAE %N for %Y from %H",
 				 radius_message_code_names, request->get_code(request),
 				 user, client);
-			add_matching_ike_sas(ids, user);
+			add_matching_ike_sas(ids, user, portId, port);
 			user->destroy(user);
 		}
 	}
