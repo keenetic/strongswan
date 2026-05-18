@@ -1408,6 +1408,28 @@ START_TEST(test_clone)
 }
 END_TEST
 
+START_TEST(test_clone_empty)
+{
+	identification_t *a, *b;
+	chunk_t a_enc, b_enc;
+
+	/* this produces an empty but non-NULL encoding, which previously caused a
+	 * double-free when destroying a clone */
+	a = identification_create_from_string("@#");
+	ck_assert(a != NULL);
+	a_enc = a->get_encoding(a);
+
+	b = a->clone(a);
+	ck_assert(b != NULL);
+	ck_assert(a != b);
+	b_enc = b->get_encoding(b);
+	ck_assert(a_enc.ptr != b_enc.ptr);
+
+	b->destroy(b);
+	a->destroy(a);
+}
+END_TEST
+
 Suite *identification_suite_create()
 {
 	Suite *s;
@@ -1465,6 +1487,7 @@ Suite *identification_suite_create()
 
 	tc = tcase_create("clone");
 	tcase_add_test(tc, test_clone);
+	tcase_add_test(tc, test_clone_empty);
 	suite_add_tcase(s, tc);
 
 	return s;
