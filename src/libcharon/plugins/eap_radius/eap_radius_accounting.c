@@ -377,11 +377,16 @@ static void cleanup_sas(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa,
 static bool send_message(private_eap_radius_accounting_t *this,
 						 radius_message_t *request,
 						 identification_t *server,
-						 const char *ikesa_name)
+						 const char *ikesa_name,
+						 bool *not_found)
 {
 	radius_message_t *response;
 	radius_client_t *client;
 	bool ack = FALSE;
+
+	if (not_found) {
+		*not_found = false;
+	}
 
 	client = eap_radius_create_client(server, FALSE, ikesa_name);
 	if (client)
@@ -389,7 +394,14 @@ static bool send_message(private_eap_radius_accounting_t *this,
 		response = client->request(client, request);
 		if (response)
 		{
-			ack = response->get_code(response) == RMC_ACCOUNTING_RESPONSE;
+			const radius_message_code_t rmc = response->get_code(response);
+
+			ack = (rmc == RMC_ACCOUNTING_RESPONSE);
+
+			if (not_found) {
+				*not_found = (rmc == RMC_ACCOUNTING_NOT_FOUND);
+			}
+
 			response->destroy(response);
 		}
 		client->destroy(client);
@@ -673,12 +685,20 @@ static job_requeue_t send_interim(interim_data_t *data)
 
 	if (message)
 	{
+		bool not_found = FALSE;
+
 		if (!send_message(this, message, ike_sa->get_my_id(ike_sa),
-						  ike_sa->get_name(ike_sa)))
+						  ike_sa->get_name(ike_sa),
+						  &not_found))
 		{
+			if (not_found) {
+				DBG1(DBG_CFG, "no matching IKE SA found, closing");
+			}
+
 			if (lib->settings->get_bool(lib->settings,
 							"%s.plugins.eap-radius.accounting_close_on_timeout",
-							TRUE, lib->ns))
+							TRUE, lib->ns) ||
+				not_found)
 			{
 				eap_radius_handle_timeout(data->id);
 			}
@@ -737,6 +757,7 @@ static void send_start(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa)
 	radius_message_t *message;
 	entry_t *entry;
 	uint32_t value;
+	bool not_found = FALSE;
 
 	if (this->acct_req_vip && !has_vip(ike_sa))
 	{
@@ -776,7 +797,8 @@ static void send_start(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa)
 
 	add_ike_sa_parameters(this, message, ike_sa);
 	if (!send_message(this, message, ike_sa->get_my_id(ike_sa),
-			ike_sa->get_name(ike_sa)))
+			ike_sa->get_name(ike_sa),
+			&not_found))
 	{
 		eap_radius_handle_timeout(ike_sa->get_id(ike_sa));
 	}
@@ -793,6 +815,7 @@ static void send_stop(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa)
 	entry_t *entry;
 	sa_entry_t *sa;
 	uint32_t value;
+	bool not_found = FALSE;
 
 	this->mutex->lock(this->mutex);
 	entry = this->sessions->remove(this->sessions, ike_sa->get_id(ike_sa));
@@ -856,7 +879,8 @@ static void send_stop(private_eap_radius_accounting_t *this, ike_sa_t *ike_sa)
 		message->add(message, RAT_ACCT_TERMINATE_CAUSE, chunk_from_thing(value));
 
 		if (!send_message(this, message, ike_sa->get_my_id(ike_sa),
-				ike_sa->get_name(ike_sa)))
+				ike_sa->get_name(ike_sa),
+				&not_found))
 		{
 			eap_radius_handle_timeout(NULL);
 		}
