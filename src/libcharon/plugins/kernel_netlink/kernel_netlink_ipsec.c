@@ -4035,7 +4035,7 @@ METHOD(kernel_ipsec_t, enable_udp_decap, bool,
 	type = 1;
 	if (setsockopt(fd, SOL_UDP, UDP_GRO, &type, sizeof(type)) < 0)
 	{
-		DBG1(DBG_KNL, "unable to set UDP_GRO: %s", strerror(errno));
+		DBG2(DBG_KNL, "unable to set UDP_GRO: %s", strerror(errno));
 		return FALSE;
 	}
 	return TRUE;

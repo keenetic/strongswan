@@ -1185,11 +1185,11 @@ static void load_secrets(private_stroke_cred_t *this, mem_cred_t *secrets,
 	int line_nr = 0;
 	chunk_t *src, line;
 
-	DBG1(DBG_CFG, "loading secrets", file);
+	DBG2(DBG_CFG, "loading secrets", file);
 	src = chunk_map(file, FALSE);
 	if (!src)
 	{
-		DBG1(DBG_CFG, "opening secrets file '%s' failed: %s", file,
+		DBG2(DBG_CFG, "opening secrets file '%s' failed: %s", file,
 			 strerror(errno));
 		return;
 	}
